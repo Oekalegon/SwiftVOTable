@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VOTABLE version="1.3" xmlns="http://www.ivoa.net/xml/VOTable/v1.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.3 http://www.ivoa.net/xml/VOTable/votable-1.3.xsd">
+    <RESOURCE type="results">
+        <INFO name="QUERY_STATUS" value="OK"/>
+        <INFO name="PROVIDER" value="CDS">SIMBAD TAP Service</INFO>
+        <INFO name="QUERY" value="SELECT id2.id FROM ident AS id1 JOIN ident AS id2 USING(oidref) WHERE id1.id = 'M13';"/>
+        <TABLE name="result_S1740321292854">
+            <FIELD arraysize="*" datatype="char" name="id" ucd="meta.id">
+                <DESCRIPTION>Identifier</DESCRIPTION>
+            </FIELD>
+            <DATA>
+                <BINARY>
+                    <STREAM encoding='base64'>
+AAAACkMgMTYzOSszNjUAAAAHR0NsICA0NQAAAAVNICAxMwAAAAlOR0MgIDYyMDUA
+AAAXMk1BU1ggSjE2NDE0MTYzKzM2Mjc0MDcAAAATW0tQUzIwMTJdIE1XU0MgMjQ0
+NQAAAB5OQU1FIEhlcmN1bGVzIEdsb2J1bGFyIENsdXN0ZXI=
+</STREAM>
+                </BINARY>
+            </DATA>
+        </TABLE>
+    </RESOURCE>
+</VOTABLE>
