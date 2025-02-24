@@ -40,10 +40,19 @@ public class ColumnMetadata {
 /// It has the same functionality as Apple's `DataFrame` class from the TabularData package,
 /// but extends it with all the extra metadata support required for VOTable files.
 /// Parsing of VOTable files is available through specific initializers.
-public class VODataFrame {
+public class VODataFrame: CustomStringConvertible {
     // Internal storage
     private var dataFrame: DataFrame
     private var metadataFrame: DataFrame
+
+    private var _description: String?
+
+    /// Description of the VODataFrame
+    ///
+    /// This property equates to the `DESCRIPTION` element in the VOTable format.
+    public var description: String {
+        _description ?? ""
+    }
 
     /// Column names in the DataFrame
     public var columns: [String] {
@@ -64,12 +73,14 @@ public class VODataFrame {
     public init() {
         self.dataFrame = DataFrame()
         self.metadataFrame = DataFrame()
+        self._description = nil
         self.addMetadataColumns()
     }
 
     public init(data: Data) throws {
         self.dataFrame = DataFrame()
         self.metadataFrame = DataFrame()
+        self._description = nil
         self.addMetadataColumns()
 
         let parser = VOTableParser()
@@ -126,21 +137,5 @@ public class VODataFrame {
     /// Access to underlying DataFrame
     public var underlying: DataFrame {
         dataFrame
-    }
-}
-
-// MARK: - CustomStringConvertible
-
-extension VODataFrame: CustomStringConvertible {
-    /// Description of the VODataFrame
-    public var description: String {
-        var result = "VODataFrame:\n"
-        result += dataFrame.description + "\n"
-
-        // Add metadata information
-        result += "\nColumn Metadata:\n"
-        result += metadataFrame.description
-
-        return result
     }
 }
