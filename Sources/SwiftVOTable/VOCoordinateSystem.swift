@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Reference frame of the coordinate system.
 ///
@@ -85,10 +86,12 @@ public enum ReferenceFrame: String, CaseIterable {
     ///   - rawValue: The string to initialize the reference frame from as used in the
     ///     COOSYS element of a VOTable file.
     public init(rawValue: String) {
+        Logger.parser.debug("Initializing ReferenceFrame from \(rawValue, privacy: .public)")
         for type in ReferenceFrame.allCases where type.rawValue == rawValue {
             self = type
             return
         }
+        Logger.parser.debug("Testing deprecated types for ReferenceFrame from \(rawValue, privacy: .public)")
         // Deprecated types that have been replaced by new types
         if rawValue == "barycentric" {
             self = .icrs
@@ -100,8 +103,9 @@ public enum ReferenceFrame: String, CaseIterable {
             self = .galactic
         } else if rawValue == "supergalactic" {
             self = .superGalactic
+        } else {
+            self = .unknown
         }
-        self = .unknown
     }
 
     /// Parent coordinate system of the reference frame.
@@ -165,7 +169,7 @@ public enum ReferencePosition: String, CaseIterable {
 
 /// This structure defines a celestial coordinate system, to which the components of a position on the
 /// celestial sphere refer.
-public struct VOCoordinateSystem {
+public struct VOCoordinateSystem: CustomStringConvertible {
     /// The identifier of the coordinate system.
     public var id: String?
 
@@ -180,4 +184,14 @@ public struct VOCoordinateSystem {
 
     /// The reference position of the coordinate system.
     public var referencePosition: ReferencePosition?
+
+    public var description: String {
+        """
+        Coordinate system [\(id ?? "nil")]:
+        - System:                  \(system?.rawValue ?? "nil")
+        - Equinox:                 \(equinox?.description ?? "nil")
+        - Epoch:                   \(epoch?.description ?? "nil")
+        - Reference position:      \(referencePosition?.rawValue ?? "nil")
+        """
+    }
 }

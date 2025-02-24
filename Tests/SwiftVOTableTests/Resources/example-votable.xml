@@ -1,0 +1,155 @@
+<?xml version="1.0"?>
+<VOTABLE xmlns="http://vizier.u-strasbg.fr/VOTable" version="v0.9">
+  <DESCRIPTION>This is an example VOTable document</DESCRIPTION>
+  <DEFINITIONS>
+    <COOSYS ID="myJ2000" equinox="J2000.0" epoch="J2000" system="eq_FK5"/>
+  </DEFINITIONS>
+  <RESOURCE name="GSC1.2">
+    <DESCRIPTION>
+This is an excerpt of the HST Guide Star Catalog, Version 1.2 (Lasker+ 1996).
+This version was re-reduced with PPM catalogue.
+</DESCRIPTION>
+    <TABLE>
+      <DESCRIPTION> Default result of GSC1.2 Server around a target</DESCRIPTION>
+      <FIELD ID="_r" name="_r" ucd="POS_ANG_DIST" unit="arcmin" datatype="float" width="7" precision="4">
+        <DESCRIPTION>Distance from target NGC40</DESCRIPTION>
+        <VALUES type="actual">
+          <MIN value="0.0"/>
+          <MAX value="10.0"/>
+        </VALUES>
+      </FIELD>
+      <FIELD ID="gsc" name="GSC-Id" datatype="char" ucd="ID_MAIN" arraysize="10">
+        <DESCRIPTION>The GSC-Id is made of 10 digits, 5 representing the plate number,
+and 5 the object number on the plate.
+</DESCRIPTION>
+      </FIELD>
+      <FIELD ID="ra" name="RA(J2000)" ref="myJ2000" ucd="POS_EQ_RA" unit="deg" datatype="double" precision="F5">
+        <DESCRIPTION>Right ascension in J2000, epoch of plate</DESCRIPTION>
+      </FIELD>
+      <FIELD ID="dec" name="Dec(J2000)" ref="myJ2000" ucd="POS_EQ_DE" unit="deg" datatype="double" precision=" F5">
+        <DESCRIPTION>Declination in J2000, epoch of plate</DESCRIPTION>
+      </FIELD>
+      <FIELD ID="pos_err" name="PossErr" unit="arcsec" datatype="float" precision="1" ucd="ERROR">
+        <DESCRIPTION>Mean error on position</DESCRIPTION>
+      </FIELD>
+      <FIELD ID="Pmag" name="Pmag" ucd="PHOT_PHG_MAG" unit="mag" datatype="float" width="5" precision="2">
+        <DESCRIPTION>photographic magnitude (see n_Pmag)</DESCRIPTION>
+      </FIELD>
+      <FIELD ID="e_Pmag" name="e_Pmag" ucd="ERROR" unit="mag" datatype="float" width="4" precision="2">
+        <DESCRIPTION>Mean error on photographic magnitude</DESCRIPTION>
+      </FIELD>
+      <FIELD ID="class" name="Class" ucd="CLASS_CODE" datatype="short" width="1">
+        <DESCRIPTION>Class of object (0=star; 3=non-stellar)</DESCRIPTION>
+        <VALUES type="actual">
+          <OPTION name="star" value="0"/>
+          <OPTION name="galaxy" value="3"/>
+        </VALUES>
+      </FIELD>
+      <LINK content-role="doc" title="documentation" href="http://vizier.u-strasbg.fr/viz-bin/Cat?I/254"/>
+      <DATA>
+        <TABLEDATA>
+          <TR>
+            <TD>0.0146</TD>
+            <TD>0430201297</TD>
+            <TD>4.7766</TD>
+            <TD>72.8474</TD>
+            <TD>3.6</TD>
+            <TD>8.59 </TD>
+            <TD>0.20</TD>
+            <TD>0</TD>
+          </TR>
+          <TR>
+            <TD>0.9704</TD>
+            <TD>0430200545</TD>
+            <TD>5.4576</TD>
+            <TD>72.6528</TD>
+            <TD>0.2</TD>
+            <TD>12.18</TD>
+            <TD>0.34</TD>
+            <TD>0</TD>
+          </TR>
+          <TR>
+            <TD>0.9730</TD>
+            <TD>0430200545</TD>
+            <TD>3.9867</TD>
+            <TD>72.9484</TD>
+            <TD>0.2</TD>
+            <TD>12.09</TD>
+            <TD>0.20</TD>
+            <TD>0</TD>
+          </TR>
+          <TR>
+            <TD>1.5843</TD>
+            <TD>0430202363</TD>
+            <TD>8.9587</TD>
+            <TD>72.6635</TD>
+            <TD>0.2</TD>
+            <TD>14.38</TD>
+            <TD>0.34</TD>
+            <TD>0</TD>
+          </TR>
+          <TR>
+            <TD>2.8586</TD>
+            <TD>0430200269</TD>
+            <TD>5.4847</TD>
+            <TD>72.8272</TD>
+            <TD>0.3</TD>
+            <TD>14.96</TD>
+            <TD>0.20</TD>
+            <TD>3</TD>
+          </TR>
+          <TR>
+            <TD>2.9198</TD>
+            <TD>0430200153</TD>
+            <TD>10.4746</TD>
+            <TD>72.4542</TD>
+            <TD>0.2</TD>
+            <TD>12.89</TD>
+            <TD>0.20</TD>
+            <TD>0</TD>
+          </TR>
+          <TR>
+            <TD>2.9215</TD>
+            <TD>0430200153</TD>
+            <TD>6.9484</TD>
+            <TD>72.1162</TD>
+            <TD>0.2</TD>
+            <TD>13.06</TD>
+            <TD>0.34</TD>
+            <TD>0</TD>
+          </TR>
+          <TR>
+            <TD>3.0487</TD>
+            <TD>0430202336</TD>
+            <TD>4.7586</TD>
+            <TD>72.9837</TD>
+            <TD>0.2</TD>
+            <TD>14.38</TD>
+            <TD>0.34</TD>
+            <TD>0</TD>
+          </TR>
+          <TR>
+            <TD>3.2247</TD>
+            <TD>0430200121</TD>
+            <TD>7.9585</TD>
+            <TD>72.5565</TD>
+            <TD>0.2</TD>
+            <TD>12.39</TD>
+            <TD>0.21</TD>
+            <TD>0</TD>
+          </TR>
+          <TR>
+            <TD>3.2269</TD>
+            <TD>0430200121</TD>
+            <TD>7.9484</TD>
+            <TD>72.5874</TD>
+            <TD>0.2</TD>
+            <TD>12.50</TD>
+            <TD>0.34</TD>
+            <TD>0</TD>
+          </TR>
+        </TABLEDATA>
+      </DATA>
+    </TABLE>
+  </RESOURCE>
+</VOTABLE>

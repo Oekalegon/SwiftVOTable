@@ -47,7 +47,12 @@ class VOTableParser: NSObject, XMLParserDelegate {
     }
 
     private func parseDescription(path: [String], value: String) {
-        if path.last == "VOTABLE" {
+        var parent = [String]()
+        parent.append(contentsOf: path)
+        parent.removeLast()
+
+        if parent.last == "VOTABLE" {
+            Logger.parser.debug("Parsing DESCRIPTION element for VOTABLE")
             parsingResult.description = value.trimmingCharacters(in: .whitespacesAndNewlines)
         } else if inField {
             currentMetadata?.description = currentValue.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -55,18 +60,21 @@ class VOTableParser: NSObject, XMLParserDelegate {
     }
 
     private func parseCoordinateSystem(path _: [String], attributes: [String: String]) {
-        Logger.parser.debug("Parsing COOSYS element")
         let id = attributes["ID"]
         let system = attributes["system"]
         let equinox = attributes["equinox"]
         let epoch = attributes["epoch"]
         let referencePosition = attributes["refposition"]
+        Logger.parser.debug("Parsing COOSYS element with attributes: \(attributes, privacy: .public)")
         parsingResult.coordinateSystem = VOCoordinateSystem(
             id: id,
             system: system != nil ? ReferenceFrame(rawValue: system!) : nil,
             equinox: equinox != nil ? try? Date(epoch: equinox!) : nil,
             epoch: epoch != nil ? try? Date(epoch: epoch!) : nil,
             referencePosition: referencePosition != nil ? ReferencePosition(rawValue: referencePosition!) : nil
+        )
+        Logger.parser.debug(
+            "Parsed COOSYS element \("\(self.parsingResult.coordinateSystem?.description ?? "nil")", privacy: .public)"
         )
     }
 
