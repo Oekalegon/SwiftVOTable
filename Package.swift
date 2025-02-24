@@ -26,7 +26,10 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftVOTableTests",
-            dependencies: ["SwiftVOTable"]
+            dependencies: ["SwiftVOTable"],
+            resources: [
+                .copy("Resources"),
+            ]
         ),
     ]
 )
