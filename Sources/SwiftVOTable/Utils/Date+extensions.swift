@@ -33,6 +33,18 @@ public extension Date {
         2000.0 + (self.julianDate - 2_451_545.0) / Date.julianYearDuration
     }
 
+    /// The Modified Julian Date origin
+    ///
+    /// This is the date where the Modified Julian Date is 0, i.e.
+    /// A.D. 1858 November 17 at midnight.
+    static let modifiedJulianDateOrigin = Date(modifiedJulianDate: 0)
+
+    /// The Julian Date origin
+    ///
+    /// This is the date where the Julian Date is 0, i.e.
+    /// 4713 B.C. January 1 at noon.
+    static let julianDateOrigin = Date(julianDate: 0.0)
+
     /// Initialize a date from a Julian Date
     ///
     /// - Parameter julianDate: The Julian Date.

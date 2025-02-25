@@ -171,20 +171,21 @@ public enum ReferencePosition: String, CaseIterable {
 /// celestial sphere refer.
 public struct VOCoordinateSystem: CustomStringConvertible {
     /// The identifier of the coordinate system.
-    public var id: String?
+    public let id: String?
 
     /// The reference frame of the coordinate system.
-    public var system: ReferenceFrame?
+    public let system: ReferenceFrame?
 
     /// The equinox of the coordinate system.
-    public var equinox: Date?
+    public let equinox: Date?
 
     /// The epoch of the coordinate system.
-    public var epoch: Date?
+    public let epoch: Date?
 
     /// The reference position of the coordinate system.
-    public var referencePosition: ReferencePosition?
+    public let referencePosition: ReferencePosition?
 
+    /// A description of the coordinate system.
     public var description: String {
         """
         Coordinate system [\(id ?? "nil")]:

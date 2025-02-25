@@ -1,6 +1,6 @@
 import Foundation
 import TabularData
-
+import OSLog
 /// Metadata for a column in a VOTable file.
 public class ColumnMetadata {
     /// Name of the column.
@@ -84,9 +84,12 @@ public class VODataFrame: CustomStringConvertible {
         self.addMetadataColumns()
 
         let parser = VOTableParser()
-        let (metadata, data) = try parser.parse(data)
-        self.dataFrame = data
-        self.metadataFrame = metadata
+        let parsingResult = try parser.parse(data)
+
+        Logger.parser.info("Parsing result: \(parsingResult.description, privacy: .public)")
+
+        // TODO: Add all data from parsingResult
+        self._description = parsingResult.description
     }
 
     private func addMetadataColumns() {
