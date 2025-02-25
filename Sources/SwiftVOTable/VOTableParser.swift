@@ -26,14 +26,16 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
     private var parsingResult = ParsingResult()
 
-    private var path: [String] = []
+    private var currentPath: [String] = []
+
+    // MARK: - Parsing
 
     /// Parse VOTable data and return a VODataFrame
     /// - Parameter data: VOTable XML data
     /// - Returns: Parsed VODataFrame
     /// - Throws: Error if parsing fails
     func parse(_ data: Data) throws -> (metadata: DataFrame, data: DataFrame) {
-        self.path = []
+        self.currentPath = []
         self.parsingResult = ParsingResult()
         let parser = XMLParser(data: data)
         parser.delegate = self
@@ -59,7 +61,11 @@ class VOTableParser: NSObject, XMLParserDelegate {
         }
     }
 
-    private func parseCoordinateSystem(path _: [String], attributes: [String: String]) {
+    private func parseCoordinateSystem(path: [String], attributes: [String: String]) {
+        if !self.pathMatches("VOTABLE/COOSYS", path), !self.pathMatches("VOTABLE/DEFINITIONS/COOSYS", path) {
+            Logger.parser.warning("Skipping COOSYS element because path does not match: \(path, privacy: .public)")
+            return
+        }
         let id = attributes["ID"]
         let system = attributes["system"]
         let equinox = attributes["equinox"]
@@ -89,7 +95,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
     ) {
         currentElement = elementName
 
-        path.append(elementName)
+        currentPath.append(elementName)
 
         switch elementName {
         case "VOTABLE", "RESOURCE", "TABLE", "DATA", "INFO":
@@ -100,7 +106,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
             Logger.parser.debug("Found BINARY data section")
 
         case "COOSYS":
-            self.parseCoordinateSystem(path: path, attributes: attributeDict)
+            self.parseCoordinateSystem(path: currentPath, attributes: attributeDict)
 
         case "STREAM":
             if let encoding = attributeDict["encoding"] {
@@ -143,7 +149,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
         namespaceURI _: String?,
         qualifiedName _: String?
     ) {
-        Logger.parser.debug("Did End element: \(self.path.joined(separator: "/"), privacy: .public)")
+        Logger.parser.debug("Did End element: \(self.currentPath.joined(separator: "/"), privacy: .public)")
 
         switch elementName {
         case "VOTABLE", "RESOURCE", "TABLE", "DATA", "BINARY", "STREAM", "INFO":
@@ -158,7 +164,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
             currentMetadata = nil
 
         case "DESCRIPTION":
-            self.parseDescription(path: path, value: currentValue)
+            self.parseDescription(path: currentPath, value: currentValue)
 
         case "TR":
             inTR = false
@@ -177,11 +183,66 @@ class VOTableParser: NSObject, XMLParserDelegate {
             Logger.parser.debug("Unhandled element: \(elementName, privacy: .public)")
         }
 
-        path.removeLast()
+        currentPath.removeLast()
     }
 
     public func parser(_: XMLParser, foundCharacters string: String) {
         Logger.parser.debug("Found characters: \(string.prefix(20), privacy: .public)...")
         currentValue += string
+    }
+
+    // MARK: - Path Matching
+
+    /// Tests if a path pattern matches a given path array
+    /// - Parameters:
+    ///   - pattern: Pattern string with '/' as separator and '*' as wildcard
+    ///   - path: Array of path components to test against
+    /// - Returns: true if pattern matches path
+    func pathMatches(_ pattern: String, _ path: [String]) -> Bool {
+        let patternParts = pattern.split(separator: "/")
+        let pathParts = path
+
+        // If no wildcards, lengths must match exactly
+        if !patternParts.contains("*") {
+            if patternParts.count != pathParts.count {
+                return false
+            }
+            return zip(patternParts, pathParts).allSatisfy { $0 == $1 }
+        }
+
+        // With wildcards, we need to match segments flexibly
+        var patternIndex = 0
+        var pathIndex = 0
+
+        while patternIndex < patternParts.count && pathIndex < pathParts.count {
+            let pattern = String(patternParts[patternIndex])
+
+            if pattern == "*" {
+                // For wildcard, try to match the next non-wildcard pattern part
+                if patternIndex == patternParts.count - 1 {
+                    // Last pattern is wildcard, matches rest of path
+                    return true
+                }
+
+                // Look ahead to next pattern part
+                patternIndex += 1
+                let nextPattern = String(patternParts[patternIndex])
+
+                // Find next matching path segment
+                while pathIndex < pathParts.count, pathParts[pathIndex] != nextPattern {
+                    pathIndex += 1
+                }
+            } else if pattern == pathParts[pathIndex] {
+                // Exact match, continue
+                patternIndex += 1
+                pathIndex += 1
+            } else {
+                return false
+            }
+        }
+
+        // Check if we matched everything
+        return patternIndex == patternParts.count ||
+            (patternIndex == patternParts.count - 1 && patternParts.last == "*")
     }
 }
