@@ -9,7 +9,7 @@ public class VOInfo: CustomStringConvertible {
     public let name: String
 
     /// The value of the info element.
-    public internal(set) var value: String
+    public let value: String
 
     /// The extended/external datatype of the info element.
     public let xType: String?
@@ -33,6 +33,8 @@ public class VOInfo: CustomStringConvertible {
     /// For instance, the reference may be the ID of a COOSYS or TIMESYS element.
     public let reference: String?
 
+    public internal(set) var textValue: String?
+
     public init(
         id: String? = nil,
         name: String,
@@ -41,7 +43,8 @@ public class VOInfo: CustomStringConvertible {
         unit: String? = nil,
         ucd: String? = nil,
         utype: String? = nil,
-        reference: String?
+        reference: String? = nil,
+        textValue: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -51,6 +54,7 @@ public class VOInfo: CustomStringConvertible {
         self.reference = reference
         self.unit = unit
         self.ucd = ucd
+        self.textValue = textValue
     }
 
     public var description: String {

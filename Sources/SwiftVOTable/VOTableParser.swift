@@ -14,6 +14,7 @@ class ParsingResult: CustomStringConvertible {
     var resources: [VOResource]?
     var parameters: [VOParameter]?
     var infos: [VOInfo]?
+    var groups: [VOGroup]?
 
     public init(id: String? = nil, version: String? = nil) {
         self.id = id
@@ -105,6 +106,8 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 var coordinateSystems = resource.coordinateSystems ?? []
                 coordinateSystems.append(coordinateSystem)
                 resource.coordinateSystems = coordinateSystems
+            } else {
+                Logger.parser.warning("Cannot add COOSYS element to \(parentObject.debugDescription), skipping")
             }
         }
     }
@@ -128,7 +131,6 @@ class VOTableParser: NSObject, XMLParserDelegate {
                     timeOriginDate = Date(julianDate: julianDate)
                 }
             }
-            Logger.parser.debug("Parsing TIMESYS element with attributes: \(attributes, privacy: .public)")
             let timeSystem = VOTimeSystem(
                 id: id,
                 timeOrigin: timeOriginDate,
@@ -148,6 +150,8 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 var timeSystems = resource.timeSystems ?? []
                 timeSystems.append(timeSystem)
                 resource.timeSystems = timeSystems
+            } else {
+                Logger.parser.warning("Cannot add TIMESYS element to \(parentObject.debugDescription), skipping")
             }
         }
     }
@@ -173,12 +177,15 @@ class VOTableParser: NSObject, XMLParserDelegate {
             var resources = resource.resources ?? []
             resources.append(resource)
             resource.resources = resources
+        } else {
+            Logger.parser.warning("Cannot add RESOURCE element to \(parentObject.debugDescription), skipping")
         }
 
         // A Resource can have sub-elements so it needs to be added to the current path
         currentObjectPath.append(resource)
     }
 
+    // swiftlint:disable:next function_body_length
     private func parseParameter(attributes: [String: String]) {
         if let name = attributes["name"],
            let datatype = attributes["datatype"],
@@ -234,11 +241,19 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 var parameters = parsingResult.parameters ?? []
                 parameters.append(parameter)
                 parsingResult.parameters = parameters
+            } else if let resource = parentObject as? VOResource { // RESOURCE
+                var parameters = resource.parameters ?? []
+                parameters.append(parameter)
+                resource.parameters = parameters
+            } else if let group = parentObject as? VOGroup { // GROUP
+                var parameters = group.parameters ?? []
+                parameters.append(parameter)
+                group.parameters = parameters
+            } else {
+                Logger.parser.warning("Cannot add PARAM element to \(parentObject.debugDescription), skipping")
             }
 
-            // TODO: Add parameter to RESOURCE
             // TODO: Add parameter to TABLE
-            // TODO: Add parameter to GROUP
         }
     }
 
@@ -325,19 +340,57 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
             // Add the info to the last object in the current path
             if parentObject == nil { // VOTABLE
-                parsingResult.infos = [info]
+                var infos: [VOInfo] = parsingResult.infos ?? []
+                infos.append(info)
+                parsingResult.infos = infos
             } else if let resource = parentObject as? VOResource { // RESOURCE
-                var infos = resource.infos ?? []
+                var infos: [VOInfo] = resource.infos ?? []
                 infos.append(info)
                 resource.infos = infos
+            } else {
+                Logger.parser.warning("Cannot add INFO element to \(parentObject.debugDescription), skipping")
             }
 
             // TODO: Add info to TABLE
         }
     }
 
+    private func parseGroup(attributes: [String: String]) {
+        // Create the group object
+        let id = attributes["ID"]
+        let name = attributes["name"]
+        let ucd = attributes["ucd"]
+        let utype = attributes["utype"]
+        let reference = attributes["ref"]
+
+        let group = VOGroup(id: id, name: name, ucd: ucd, utype: utype, reference: reference)
+
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        // Add the group to the last object in the current path
+        if parentObject == nil { // VOTABLE
+            var groups = parsingResult.groups ?? []
+            groups.append(group)
+            parsingResult.groups = groups
+        } else if let resource = parentObject as? VOResource { // RESOURCE
+            var groups = resource.groups ?? []
+            groups.append(group)
+            resource.groups = groups
+        } else if let group = parentObject as? VOGroup { // GROUP
+            var groups = group.groups ?? []
+            groups.append(group)
+            group.groups = groups
+        } else {
+            Logger.parser.warning("Cannot add GROUP element to \(parentObject.debugDescription), skipping")
+        }
+
+        // TODO: Add group to TABLE
+    }
+
     // MARK: - XMLParserDelegate
 
+    // swiftlint:disable:next cyclomatic_complexity
     public func parser(
         _: XMLParser,
         didStartElement elementName: String,
@@ -364,6 +417,22 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parseField(attributes: attributeDict)
         case "INFO":
             parseInfo(attributes: attributeDict)
+        case "GROUP":
+            parseGroup(attributes: attributeDict)
+        case "FIELDref":
+            // Add the field reference to the group as a string
+            if let group = currentObjectPath.last as? VOGroup {
+                var fieldReferences = group.fieldReferences ?? []
+                fieldReferences.append(currentValue.trimmingCharacters(in: .whitespacesAndNewlines))
+                group.fieldReferences = fieldReferences
+            }
+        case "PARAMref":
+            // Add the parameter reference to the group as a string
+            if let group = currentObjectPath.last as? VOGroup {
+                var parameterReferences = group.parameterReferences ?? []
+                parameterReferences.append(currentValue.trimmingCharacters(in: .whitespacesAndNewlines))
+                group.parameterReferences = parameterReferences
+            }
         default:
             Logger.parser.debug("Unhandled element: \(elementName, privacy: .public)")
         }
@@ -378,7 +447,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
     ) {
         let currentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
         switch elementName {
-        case "VOTABLE":
+        case "VOTABLE", "FIELDref", "PARAMref":
             break
         case "RESOURCE":
             // Remove the resource from the current path
@@ -399,15 +468,12 @@ class VOTableParser: NSObject, XMLParserDelegate {
             // Remove the info from the current path
             if let info = currentObject as? VOInfo {
                 let textValue = currentValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                if textValue.count > 0 {
-                    if info.value.trimmingCharacters(in: .whitespacesAndNewlines).count > 0 {
-                        // If the info already has a value, and also a text value
-                        // we need to add a new line to the value with the text value
-                        info.value += "\n\(textValue)"
-                    } else {
-                        info.value = textValue
-                    }
-                }
+                info.textValue = textValue
+                currentObjectPath.removeLast()
+            }
+        case "GROUP":
+            // Remove the group from the current path
+            if currentObject is VOGroup {
                 currentObjectPath.removeLast()
             }
         case "DESCRIPTION":

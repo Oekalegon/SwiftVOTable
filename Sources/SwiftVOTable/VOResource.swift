@@ -29,6 +29,12 @@ public class VOResource: CustomStringConvertible {
 
     private var _description: String?
 
+    /// Sets the description of the resource.
+    /// - Parameter description: The description of the resource.
+    func setDescription(_ description: String) {
+        self._description = description
+    }
+
     /// The coordinate systems of the resource.
     public internal(set) var coordinateSystems: [VOCoordinateSystem]?
 
@@ -41,11 +47,11 @@ public class VOResource: CustomStringConvertible {
     /// The info elements of the resource.
     public internal(set) var infos: [VOInfo]?
 
-    /// Sets the description of the resource.
-    /// - Parameter description: The description of the resource.
-    func setDescription(_ description: String) {
-        self._description = description
-    }
+    /// The groups of the resource.
+    public internal(set) var groups: [VOGroup]?
+
+    /// The parameters defined for the resource.
+    public var parameters: [VOParameter]?
 
     public init(
         id: String? = nil,
@@ -55,7 +61,9 @@ public class VOResource: CustomStringConvertible {
         coordinateSystems: [VOCoordinateSystem]? = nil,
         timeSystems: [VOTimeSystem]? = nil,
         resources: [VOResource]? = nil,
-        infos: [VOInfo]? = nil
+        infos: [VOInfo]? = nil,
+        groups: [VOGroup]? = nil,
+        parameters: [VOParameter]? = nil
     ) {
         self.id = id
         self.name = name
@@ -65,5 +73,7 @@ public class VOResource: CustomStringConvertible {
         self.timeSystems = timeSystems
         self.resources = resources
         self.infos = infos
+        self.groups = groups
+        self.parameters = parameters
     }
 }

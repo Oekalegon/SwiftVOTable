@@ -14,17 +14,17 @@ The following table lists which parts (elements)of the VOTable Format Definition
 | -  COOSYS         | yes                 | no                     |
 | -  TIMESYS        | yes                 | no                     |
 | -  RESOURCE       | partial             | no                     |
-| -  INFO           | no                  | no                     |
-| -  PARAM          | no                  | no                     |
-| -  GROUP          | no                  | no                     |
+| -  INFO           | yes                 | no                     |
+| -  PARAM          | yes                 | no                     |
+| -  GROUP          | yes                 | no                     |
 | RESOURCE          | partial             | no                     |
 | -  DESCRIPTION    | yes                 | no                     |
 | -  COOSYS         | yes                 | no                     |
 | -  TIMESYS        | yes                 | no                     |
 | -  RESOURCE       | yes                 | no                     |
-| -  INFO           | no                  | no                     |
-| -  GROUP          | no                  | no                     |
-| -  PARAM          | no                  | no                     |
+| -  INFO           | yes                 | no                     |
+| -  GROUP          | yes                 | no                     |
+| -  PARAM          | yes                 | no                     |
 | -  LINK           | no                  | no                     |
 | -  TABLE          | no                  | no                     |
 | -  DATA           | no                  | no                     |
@@ -37,12 +37,12 @@ The following table lists which parts (elements)of the VOTable Format Definition
 | VALUES            | no                  | no                     |
 | COOSYS            | yes                 | no                     |
 | TIMESYS           | yes                 | no                     |
-| INFO              | no                  | no                     |
-| PARAM             | no                  | no                     |
+| INFO              | yes                 | no                     |
+| PARAM             | yes                 | no                     |
 | GROUP             | no                  | no                     |
 | LINK              | no                  | no                     |
 | TABLE             | no                  | no                     |
-| FIELD             | no                  | no                     |
+| FIELD             | yes                 | no                     |
 | TABLEDATA         | no                  | no                     |
 | TR                | no                  | no                     |
 | TD                | no                  | no                     |

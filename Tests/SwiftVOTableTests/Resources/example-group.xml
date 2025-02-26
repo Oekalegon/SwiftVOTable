@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VOTABLE version="1.3" xmlns="http://www.ivoa.net/xml/VOTable/v1.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.3 http://www.ivoa.net/xml/VOTable/votable-1.3.xsd">
+    <RESOURCE type="results">
+        <TABLE name="some_table">
+            <FIELD name="Flux" ID="col4" ucd="phot.flux;em.radio.200-400MHz"
+                datatype="float" width="6" precision="1" unit="mJy"/>
+            <FIELD name="e_Flux" ID="col5" datatype="float" width="4" precision="1"
+                ucd="stat.error;phot.flux;em.radio.200-400MHz" unit="mJy"/>
+            <GROUP name="Flux" ucd="phot.flux;em.radio.200-400MHz">
+                <DESCRIPTION>Flux measured at 352MHz</DESCRIPTION>
+                <PARAM name="Freq" ucd="em.freq" unit="MHz" datatype="float" value="352"/>
+                <FIELDref ref="col4"/>
+                <FIELDref ref="col5"/>
+            </GROUP>
+            <DATA>
+                <TABLEDATA>
+                    <TR>
+                        <TD>12.321</TD>
+                        <TD>0.321</TD>
+                    </TR>
+                </TABLEDATA>
+            </DATA>
+        </TABLE>
+    </RESOURCE>
+</VOTABLE>
