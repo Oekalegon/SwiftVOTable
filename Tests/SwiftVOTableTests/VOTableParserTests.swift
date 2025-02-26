@@ -8,7 +8,7 @@ struct VOTableParserTests {
     private static let testFiles = [
         "M13-IDs-votable.xml",
         "example-votable.xml",
-        "example-with-time-votable.xml"
+        "example-with-time-votable.xml",
     ]
 
     @Test("Parse VOTable file")
@@ -27,7 +27,7 @@ struct VOTableParserTests {
         let url = URL(fileURLWithPath: "Tests/SwiftVOTableTests/Resources/example-with-time-votable.xml")
         let data = try Data(contentsOf: url)
         let voDataFrame = try VODataFrame(data: data)
-        
+
         // assert(voDataFrame.isEmpty == false)
     }
 

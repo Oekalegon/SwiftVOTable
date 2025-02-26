@@ -2,11 +2,10 @@ import Foundation
 import OSLog
 
 public struct VOResource: CustomStringConvertible {
-
     private var _description: String?
 
     public var description: String {
-        return _description ?? "No description for this resource"
+        _description ?? "No description for this resource"
     }
 
     public internal(set) var coordinateSystem: VOCoordinateSystem?

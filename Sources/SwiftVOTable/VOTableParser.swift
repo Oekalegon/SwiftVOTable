@@ -8,7 +8,7 @@ struct ParsingResult: CustomStringConvertible {
     var coordinateSystem: VOCoordinateSystem?
     var timeSystem: VOTimeSystem?
     var parsedDescription: String?
-    var resources: [VOResource]? = nil
+    var resources: [VOResource]?
 
     var description: String {
         """
@@ -21,6 +21,7 @@ struct ParsingResult: CustomStringConvertible {
     }
 }
 
+// swiftlint:disable type_body_length
 /// Parser for VOTable XML format
 class VOTableParser: NSObject, XMLParserDelegate {
     private var currentMetadata: ColumnMetadata?
@@ -43,6 +44,23 @@ class VOTableParser: NSObject, XMLParserDelegate {
     private var currentResourcePath: [VOResource] = []
 
     // MARK: - Parsing
+
+    // MARK: Start Elements
+
+    private func handleStartTableData() {
+        inTableData = true
+    }
+
+    private func handleStartTR() {
+        inTR = true
+        currentRow = []
+    }
+
+    private func handleStartStream(attributes: [String: String]) {
+        if let encoding = attributes["encoding"] {
+            Logger.parser.info("Found STREAM with encoding: \(encoding, privacy: .public)")
+        }
+    }
 
     /// Parse VOTable data and return a VODataFrame
     /// - Parameter data: VOTable XML data
@@ -76,8 +94,8 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
     private func parseCoordinateSystem(path: [String], attributes: [String: String]) {
         if !self.pathMatches("VOTABLE/COOSYS", path),
-            !self.pathMatches("VOTABLE/DEFINITIONS/COOSYS", path),
-            !self.pathMatches("*/RESOURCE/COOSYS", path)
+           !self.pathMatches("VOTABLE/DEFINITIONS/COOSYS", path),
+           !self.pathMatches("*/RESOURCE/COOSYS", path)
         {
             Logger.parser.warning("Skipping COOSYS element because path does not match: \(path, privacy: .public)")
             return
@@ -100,15 +118,15 @@ class VOTableParser: NSObject, XMLParserDelegate {
         )
         if self.pathMatches("VOTABLE/COOSYS", path) {
             parsingResult.coordinateSystem = coordinateSystem
-        } else if self.pathMatches("*/RESOURCE/COOSYS", currentPath) && !currentResourcePath.isEmpty {
+        } else if self.pathMatches("*/RESOURCE/COOSYS", currentPath), !currentResourcePath.isEmpty {
             currentResourcePath[currentResourcePath.count - 1].coordinateSystem = coordinateSystem
         }
     }
 
     private func parseTimeSystem(path: [String], attributes: [String: String]) {
         if !self.pathMatches("VOTABLE/TIMESYS", path),
-            !self.pathMatches("VOTABLE/DEFINITIONS/TIMESYS", path),
-            !self.pathMatches("*/RESOURCE/TIMESYS", path)
+           !self.pathMatches("VOTABLE/DEFINITIONS/TIMESYS", path),
+           !self.pathMatches("*/RESOURCE/TIMESYS", path)
         {
             Logger.parser.warning("Skipping TIMESYS element because path does not match: \(path, privacy: .public)")
             return
@@ -138,14 +156,14 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
         if self.pathMatches("VOTABLE/TIMESYS", path) {
             parsingResult.timeSystem = timeSystem
-        } else if self.pathMatches("*/RESOURCE/TIMESYS", currentPath) && !currentResourcePath.isEmpty {
+        } else if self.pathMatches("*/RESOURCE/TIMESYS", currentPath), !currentResourcePath.isEmpty {
             currentResourcePath[currentResourcePath.count - 1].timeSystem = timeSystem
         }
     }
 
     private func parseResource(path: [String]) {
         if !self.pathMatches("VOTABLE/RESOURCE", path),
-            !self.pathMatches("*/RESOURCE/RESOURCE", path)
+           !self.pathMatches("*/RESOURCE/RESOURCE", path)
         {
             Logger.parser.warning("Skipping RESOURCE element because path does not match: \(path, privacy: .public)")
             return
@@ -154,16 +172,50 @@ class VOTableParser: NSObject, XMLParserDelegate {
         currentResourcePath.append(resource)
     }
 
+    // MARK: End Elements
+
+    private func handleFieldElement(attributes: [String: String]) {
+        inField = true
+        let name = attributes["name"] ?? ""
+        let datatype = attributes["datatype"] ?? "char"
+        let unit = attributes["unit"]
+        let ucd = attributes["ucd"]
+
+        currentMetadata = ColumnMetadata(
+            name: name,
+            datatype: datatype,
+            ucd: ucd,
+            unit: unit,
+            description: nil
+        )
+    }
+
+    private func handleEndResource() {
+        if let currentResource = currentResourcePath.last {
+            self.addResource(currentResource, path: currentPath)
+        }
+        currentResourcePath.removeLast()
+    }
+
+    private func handleEndField() {
+        inField = false
+        if let metadata = currentMetadata {
+            fields.append(metadata)
+        }
+        currentMetadata = nil
+    }
+
     private func addResource(_ resource: VOResource, path: [String]) {
         if self.pathMatches("VOTABLE/RESOURCE", path) {
             parsingResult.resources?.append(resource)
-        } else if self.pathMatches("*/RESOURCE/RESOURCE", path) && !currentResourcePath.isEmpty {
+        } else if self.pathMatches("*/RESOURCE/RESOURCE", path), !currentResourcePath.isEmpty {
             currentResourcePath[currentResourcePath.count - 1].resources?.append(resource)
         }
     }
 
     // MARK: - XMLParserDelegate
 
+    // swiftlint:disable:next cyclomatic_complexity
     public func parser(
         _: XMLParser,
         didStartElement elementName: String,
@@ -172,56 +224,29 @@ class VOTableParser: NSObject, XMLParserDelegate {
         attributes attributeDict: [String: String]
     ) {
         currentElement = elementName
-
         currentPath.append(elementName)
 
         switch elementName {
         case "VOTABLE", "TABLE", "DATA", "INFO":
-            // Container elements, just track them
             break
-
         case "BINARY":
             Logger.parser.debug("Found BINARY data section")
-
         case "COOSYS":
-            self.parseCoordinateSystem(path: currentPath, attributes: attributeDict)
-
+            parseCoordinateSystem(path: currentPath, attributes: attributeDict)
         case "TIMESYS":
-            self.parseTimeSystem(path: currentPath, attributes: attributeDict)
-
+            parseTimeSystem(path: currentPath, attributes: attributeDict)
         case "RESOURCE":
-            self.parseResource(path: currentPath)
-
-        case "STREAM":
-            if let encoding = attributeDict["encoding"] {
-                Logger.parser.info("Found STREAM with encoding: \(encoding, privacy: .public)")
-            }
-
+            parseResource(path: currentPath)
         case "FIELD":
-            inField = true
-            let name = attributeDict["name"] ?? ""
-            let datatype = attributeDict["datatype"] ?? "char"
-            let unit = attributeDict["unit"]
-            let ucd = attributeDict["ucd"]
-
-            currentMetadata = ColumnMetadata(
-                name: name,
-                datatype: datatype,
-                ucd: ucd,
-                unit: unit,
-                description: nil
-            )
-
+            handleFieldElement(attributes: attributeDict)
+        case "STREAM":
+            handleStartStream(attributes: attributeDict)
         case "TABLEDATA":
-            inTableData = true
-
+            handleStartTableData()
         case "TR":
-            inTR = true
-            currentRow = []
-
+            handleStartTR()
         case "TD":
             currentValue = ""
-
         default:
             Logger.parser.debug("Unhandled element: \(elementName, privacy: .public)")
         }
@@ -237,38 +262,21 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
         switch elementName {
         case "VOTABLE", "TABLE", "DATA", "BINARY", "STREAM", "INFO":
-            // Container elements, nothing to do
             break
-
         case "RESOURCE":
-            if let currentResource = currentResourcePath.last {
-                self.addResource(currentResource, path: currentPath)
-            }
-            currentResourcePath.removeLast()
-
+            handleEndResource()
         case "FIELD":
-            inField = false
-            if let metadata = currentMetadata {
-                fields.append(metadata)
-            }
-            currentMetadata = nil
-
+            handleEndField()
         case "DESCRIPTION":
             self.parseDescription(path: currentPath, value: currentValue)
-
         case "TR":
             inTR = false
-            // Process the row data here
-            // TODO: Convert strings to appropriate types based on field metadata
-
         case "TD":
             if inTR {
                 currentRow.append(currentValue.trimmingCharacters(in: .whitespacesAndNewlines))
             }
-
         case "TABLEDATA":
             inTableData = false
-
         default:
             Logger.parser.debug("Unhandled element: \(elementName, privacy: .public)")
         }
@@ -336,3 +344,5 @@ class VOTableParser: NSObject, XMLParserDelegate {
             (patternIndex == patternParts.count - 1 && patternParts.last == "*")
     }
 }
+
+// swiftlint:enable type_body_length

@@ -1,6 +1,7 @@
 import Foundation
-import TabularData
 import OSLog
+import TabularData
+
 /// Metadata for a column in a VOTable file.
 public class ColumnMetadata {
     /// Name of the column.

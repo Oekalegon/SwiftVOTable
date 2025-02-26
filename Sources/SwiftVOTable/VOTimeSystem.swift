@@ -6,7 +6,6 @@ import OSLog
 /// This enum is based on the IVOA Time Scale Vocabulary.
 /// See https://www.ivoa.net/rdf/timescale/2019-03-15/timescale.html
 public enum TimeScale: String, CaseIterable {
-
     /// Global Positioning System Time.
     ///
     /// Runs (approximately) synchronously with TAI
