@@ -348,7 +348,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
         currentPath.append(elementName)
 
         switch elementName {
-        case "VOTABLE":
+        case "VOTABLE", "DESCRIPTION":
             break
         case "BINARY":
             Logger.parser.debug("Found BINARY data section")
