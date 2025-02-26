@@ -128,7 +128,7 @@ public class VOValues: CustomStringConvertible {
     /// - Parameters:
     ///   - maximum: The maximum value(s) of the domain.
     ///   - minimum: The minimum value(s) of the domain.
-    ///   - option: The option value of the domain.
+    ///   - optionalValues: The optional values of the domain.
     public init(maximum: DomainValue? = nil, minimum: DomainValue? = nil, optionalValues: [OptionalValue]? = nil) {
         self.maximum = maximum
         self.minimum = minimum
