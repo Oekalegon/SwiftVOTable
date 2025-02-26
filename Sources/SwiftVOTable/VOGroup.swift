@@ -72,6 +72,7 @@ public class VOGroup: CustomStringConvertible {
     ///     are only defined for this group.
     ///   - parameterReferences: The parameters that are part of the group and
     ///     are referenced from other parts of the VOTABLE.
+    ///   - groups: The sub-groups of the resource.
     ///   - description: The description of the group.
     public init(
         id: String? = nil,
