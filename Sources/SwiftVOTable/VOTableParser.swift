@@ -217,11 +217,13 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 }
             }
 
+            let parameterValues = parameterValue.split(separator: " ").map(\.self)
+
             let parameter = VOParameter(
                 id: id,
                 name: name,
                 datatype: datatype,
-                parameterValue: parameterValue,
+                parameterValues: parameterValues,
                 arraySize: arraySize,
                 arraySizeInfinite: arraySizeInfinite,
                 width: width,
@@ -388,6 +390,125 @@ class VOTableParser: NSObject, XMLParserDelegate {
         // TODO: Add group to TABLE
     }
 
+    private func parseValues(attributes: [String: String]) {
+        let id = attributes["ID"]
+        let typeStr = attributes["type"]
+        let type = VOValuesType(type: typeStr)
+        let reference = attributes["ref"]
+        let nullValue = attributes["null"]
+
+        let values = VOValues(id: id, type: type, reference: reference, nullValue: nullValue)
+
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        // Add the values to the last object in the current path
+        if let field = parentObject as? VOField { // VOField
+            field.values = values
+        } else if let parameter = parentObject as? VOParameter { // VOParameter
+            parameter.values = values
+        } else {
+            Logger.parser.warning("Cannot add VALUES element to \(parentObject.debugDescription), skipping")
+        }
+    }
+
+    private func parseMin(attributes: [String: String]) {
+        if let value = attributes["value"] {
+            let inclusive = attributes["inclusive"]
+            let values = value.split(separator: " ").map(\.self)
+            let convertedValues = convertValues(values)
+            let min = DomainValue(values: convertedValues, inclusive: inclusive == "true")
+            let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+            // Add the min to the last object in the current path
+            if let values = parentObject as? VOValues {
+                values.minimum = min
+            } else {
+                Logger.parser.warning("Cannot add MIN element to \(parentObject.debugDescription), skipping")
+            }
+        }
+    }
+
+    private func parseMax(attributes: [String: String]) {
+        if let value = attributes["value"] {
+            let inclusive = attributes["inclusive"]
+            let stringValues = value.split(separator: " ").map(\.self)
+            let convertedValues = convertValues(stringValues)
+            let max = DomainValue(values: convertedValues, inclusive: inclusive == "true")
+            let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+            // Add the max to the last object in the current path
+            if let values = parentObject as? VOValues { // VOValues
+                values.maximum = max
+            } else {
+                Logger.parser.warning("Cannot add MAX element to \(parentObject.debugDescription), skipping")
+            }
+        }
+    }
+
+    private func parseOption(attributes: [String: String]) {
+        if let value = attributes["value"] {
+            let name = attributes["name"]
+            let stringValues = value.split(separator: " ")
+            let convertedValues = convertValues(stringValues)
+            let optionalValue = OptionalValue(name: name, values: convertedValues)
+            let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+            // Add the option to the last object in the current path
+            if let values = parentObject as? VOValues { // VOValues
+                var optionalValues = values.optionalValues ?? []
+                optionalValues.append(optionalValue)
+                values.optionalValues = optionalValues
+            } else if let optionalValue = parentObject as? OptionalValue {
+                var optionalValues = optionalValue.optionalValues ?? []
+                optionalValues.append(optionalValue)
+                optionalValue.optionalValues = optionalValues
+            } else {
+                Logger.parser.warning("Cannot add OPTION element to \(parentObject.debugDescription), skipping")
+            }
+        }
+    }
+
+    private func parseLink(attributes: [String: String]) {
+        let id = attributes["ID"]
+        let title = attributes["title"]
+        let value = attributes["value"]
+        let action = attributes["action"]
+        let urlStr = attributes["href"]
+        let url = urlStr != nil ? URL(string: urlStr!) : nil
+        let contentType = attributes["content-type"]
+        let contentRoleStr = attributes["content-role"]
+        let contentRole = ContentRole(role: contentRoleStr)
+
+        let link = VOLink(
+            id: id,
+            title: title,
+            value: value,
+            action: action,
+            url: url,
+            contentType: contentType,
+            contentRole: contentRole
+        )
+
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        if let resource = parentObject as? VOResource {
+            var links = resource.links ?? []
+            links.append(link)
+            resource.links = links
+        } else if let field = parentObject as? VOField {
+            var links = field.links ?? []
+            links.append(link)
+            field.links = links
+        } else if let parameter = parentObject as? VOParameter {
+            var links = parameter.links ?? []
+            links.append(link)
+            parameter.links = links
+        } else {
+            Logger.parser.warning("Cannot add LINK element to \(parentObject.debugDescription), skipping")
+        }
+    }
+
     // MARK: - XMLParserDelegate
 
     // swiftlint:disable:next cyclomatic_complexity
@@ -415,6 +536,16 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parseParameter(attributes: attributeDict)
         case "FIELD":
             parseField(attributes: attributeDict)
+        case "VALUES":
+            parseValues(attributes: attributeDict)
+        case "MIN":
+            parseMin(attributes: attributeDict)
+        case "MAX":
+            parseMax(attributes: attributeDict)
+        case "OPTION    ":
+            parseOption(attributes: attributeDict)
+        case "LINK":
+            parseLink(attributes: attributeDict)
         case "INFO":
             parseInfo(attributes: attributeDict)
         case "GROUP":
@@ -438,7 +569,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
         }
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public func parser(
         _: XMLParser,
         didEndElement elementName: String,
@@ -462,6 +593,31 @@ class VOTableParser: NSObject, XMLParserDelegate {
         case "FIELD":
             // Remove the field from the current path
             if currentObject is VOField {
+                currentObjectPath.removeLast()
+            }
+        case "VALUES":
+            // Remove the values from the current path
+            if currentObject is VOValues {
+                currentObjectPath.removeLast()
+            }
+        case "MIN":
+            // Remove the min from the current path
+            if currentObject is DomainValue {
+                currentObjectPath.removeLast()
+            }
+        case "MAX":
+            // Remove the max from the current path
+            if currentObject is DomainValue {
+                currentObjectPath.removeLast()
+            }
+        case "OPTION":
+            // Remove the option from the current path
+            if currentObject is OptionalValue {
+                currentObjectPath.removeLast()
+            }
+        case "LINK":
+            // Remove the link from the current path
+            if currentObject is VOLink {
                 currentObjectPath.removeLast()
             }
         case "INFO":
@@ -542,6 +698,24 @@ class VOTableParser: NSObject, XMLParserDelegate {
         // Check if we matched everything
         return patternIndex == patternParts.count ||
             (patternIndex == patternParts.count - 1 && patternParts.last == "*")
+    }
+
+    /// Converts an array of substrings to an array of Any values
+    /// - Parameter values: Array of substrings to convert
+    /// - Returns: Array of Any values
+    func convertValues(_ values: [Substring]) -> [Any] {
+        values.map { str in
+            // Try Double first
+            if let doubleValue = Double(str) {
+                return doubleValue
+            }
+            // Try Int next
+            if let intValue = Int(str) {
+                return intValue
+            }
+            // Fall back to String
+            return String(str)
+        }
     }
 }
 

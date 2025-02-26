@@ -25,24 +25,20 @@ The following table lists which parts (elements)of the VOTable Format Definition
 | -  INFO           | yes                 | no                     |
 | -  GROUP          | yes                 | no                     |
 | -  PARAM          | yes                 | no                     |
-| -  LINK           | no                  | no                     |
+| -  LINK           | yes                 | no                     |
 | -  TABLE          | no                  | no                     |
 | -  DATA           | no                  | no                     |
 | -  TABLEDATA      | no                  | no                     |
 | TABLE             | no                  | no                     |
-| FIELD             | no                  | no                     |
-| PARAM             | no                  | no                     |
+| FIELD             | yes                 | no                     |
+| PARAM             | yes                 | no                     |
 | DATA              | no                  | no                     |
-| GROUP             | no                  | no                     |
-| VALUES            | no                  | no                     |
+| GROUP             | yes                 | no                     |
+| VALUES            | yes                 | no                     |
 | COOSYS            | yes                 | no                     |
 | TIMESYS           | yes                 | no                     |
 | INFO              | yes                 | no                     |
-| PARAM             | yes                 | no                     |
-| GROUP             | no                  | no                     |
-| LINK              | no                  | no                     |
-| TABLE             | no                  | no                     |
-| FIELD             | yes                 | no                     |
+| LINK              | yes                 | no                     |
 | TABLEDATA         | no                  | no                     |
 | TR                | no                  | no                     |
 | TD                | no                  | no                     |
