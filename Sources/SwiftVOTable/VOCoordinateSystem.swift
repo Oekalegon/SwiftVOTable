@@ -169,9 +169,9 @@ public enum ReferencePosition: String, CaseIterable {
 
 /// This structure defines a celestial coordinate system, to which the components of a position on the
 /// celestial sphere refer.
-public struct VOCoordinateSystem: CustomStringConvertible {
+public class VOCoordinateSystem: CustomStringConvertible {
     /// The identifier of the coordinate system.
-    public let id: String?
+    public let id: String
 
     /// The reference frame of the coordinate system.
     public let system: ReferenceFrame?
@@ -185,10 +185,24 @@ public struct VOCoordinateSystem: CustomStringConvertible {
     /// The reference position of the coordinate system.
     public let referencePosition: ReferencePosition?
 
+    public init(
+        id: String,
+        system: ReferenceFrame?,
+        equinox: Date?,
+        epoch: Date?,
+        referencePosition: ReferencePosition?
+    ) {
+        self.id = id
+        self.system = system
+        self.equinox = equinox
+        self.epoch = epoch
+        self.referencePosition = referencePosition
+    }
+
     /// A description of the coordinate system.
     public var description: String {
         """
-        Coordinate system [\(id ?? "nil")]:
+        Coordinate system [\(id)]:
         - System:                  \(system?.rawValue ?? "nil")
         - Equinox:                 \(equinox?.description ?? "nil")
         - Epoch:                   \(epoch?.description ?? "nil")

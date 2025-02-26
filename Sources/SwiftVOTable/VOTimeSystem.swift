@@ -70,26 +70,38 @@ public enum TimeScale: String, CaseIterable {
 ///
 /// This structure is based on the IVOA TIMESYS element of the VOTable specification.
 /// See https://www.ivoa.net/documents/VOTable/20250116/REC-VOTable-1.5.html#tth_sEc3.4
-public struct VOTimeSystem: CustomStringConvertible {
+public class VOTimeSystem: CustomStringConvertible {
     /// The identifier of the time system.
-    public let id: String?
+    public let id: String
 
     /// The time origin of the time system.
     public let timeOrigin: Date?
 
     /// The time scale of the time system.
-    public let timeScale: TimeScale?
+    public let timeScale: TimeScale
 
     /// The reference position of the time system.
-    public let referencePosition: ReferencePosition?
+    public let referencePosition: ReferencePosition
+
+    public init(
+        id: String,
+        timeOrigin: Date?,
+        timeScale: TimeScale,
+        referencePosition: ReferencePosition
+    ) {
+        self.id = id
+        self.timeOrigin = timeOrigin
+        self.timeScale = timeScale
+        self.referencePosition = referencePosition
+    }
 
     /// A description of the time system.
     public var description: String {
         """
-        Time system [\(id ?? "nil")]:
-        - Time origin:      \(timeOrigin?.description ?? "nil")
-        - Time scale:      \(timeScale?.rawValue ?? "nil")
-        - Reference position:      \(referencePosition?.rawValue ?? "nil")
+        Time system [\(id)]:
+        - Time origin:          \(timeOrigin?.description ?? "nil")
+        - Time scale:           \(timeScale.rawValue)
+        - Reference position:   \(referencePosition.rawValue)
         """
     }
 }

@@ -1,21 +1,30 @@
+// swiftlint:disable file_length
 import Foundation
 import OSLog
 import TabularData
 
-struct ParsingResult: CustomStringConvertible {
+class ParsingResult: CustomStringConvertible {
+    let id: String?
+    let version: String?
     var columnData: DataFrame?
     var data: DataFrame?
-    var coordinateSystem: VOCoordinateSystem?
-    var timeSystem: VOTimeSystem?
+    var coordinateSystems: [VOCoordinateSystem]?
+    var timeSystems: [VOTimeSystem]?
     var parsedDescription: String?
     var resources: [VOResource]?
+    var parameters: [VOParameter]?
+
+    public init(id: String? = nil, version: String? = nil) {
+        self.id = id
+        self.version = version
+    }
 
     var description: String {
         """
         ParsingResult:
         - Description: \(parsedDescription ?? "nil")
-        - Coordinate System: \(coordinateSystem?.description ?? "nil")
-        - Time System: \(timeSystem?.description ?? "nil")
+        - Coordinate Systems: \(coordinateSystems?.description ?? "nil")
+        - Time Systems: \(timeSystems?.description ?? "nil")
         - Resources: \(resources?.description ?? "nil")
         """
     }
@@ -24,43 +33,14 @@ struct ParsingResult: CustomStringConvertible {
 // swiftlint:disable type_body_length
 /// Parser for VOTable XML format
 class VOTableParser: NSObject, XMLParserDelegate {
-    private var currentMetadata: ColumnMetadata?
-    private var currentElement: String = ""
     private var currentValue: String = ""
-
-    // Track nested elements
-    private var inField = false
-    private var inTableData = false
-    private var inTR = false
-    private var currentRow: [String] = []
-
-    // Store temporary field metadata
-    private var fields: [ColumnMetadata] = []
-
-    private var parsingResult = ParsingResult()
-
     private var currentPath: [String] = []
-
-    private var currentResourcePath: [VOResource] = []
+    private var currentObjectPath: [Any] = []
+    private var parsingResult = ParsingResult()
 
     // MARK: - Parsing
 
     // MARK: Start Elements
-
-    private func handleStartTableData() {
-        inTableData = true
-    }
-
-    private func handleStartTR() {
-        inTR = true
-        currentRow = []
-    }
-
-    private func handleStartStream(attributes: [String: String]) {
-        if let encoding = attributes["encoding"] {
-            Logger.parser.info("Found STREAM with encoding: \(encoding, privacy: .public)")
-        }
-    }
 
     /// Parse VOTable data and return a VODataFrame
     /// - Parameter data: VOTable XML data
@@ -79,150 +59,245 @@ class VOTableParser: NSObject, XMLParserDelegate {
         return parsingResult
     }
 
-    private func parseDescription(path: [String], value: String) {
-        var parent = [String]()
-        parent.append(contentsOf: path)
-        parent.removeLast()
+    private func parseDescription(value: String) {
+        let parsedDescription = value.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if parent.last == "VOTABLE" {
-            Logger.parser.debug("Parsing DESCRIPTION element for VOTABLE")
-            parsingResult.parsedDescription = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else if inField {
-            currentMetadata?.description = currentValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else if self.pathMatches("*/RESOURCE/DESCRIPTION", path) {
-            let description = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            currentResourcePath[currentResourcePath.count - 1].setDescription(description)
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        // Add the coordinate system to the last object in the current path
+        if parentObject == nil { // VOTABLE
+            parsingResult.parsedDescription = parsedDescription
+        } else if let resource = parentObject as? VOResource { // RESOURCE
+            resource.setDescription(parsedDescription)
         }
+        // TODO: Add description to TABLE
+        // TODO: Add description to FIELD
+        // TODO: Add description to PARAM
+        // TODO: Add description to GROUP
     }
 
-    private func parseCoordinateSystem(path: [String], attributes: [String: String]) {
-        if !self.pathMatches("VOTABLE/COOSYS", path),
-           !self.pathMatches("VOTABLE/DEFINITIONS/COOSYS", path),
-           !self.pathMatches("*/RESOURCE/COOSYS", path)
-        {
-            Logger.parser.warning("Skipping COOSYS element because path does not match: \(path, privacy: .public)")
-            return
-        }
-        let id = attributes["ID"]
-        let system = attributes["system"]
-        let equinox = attributes["equinox"]
-        let epoch = attributes["epoch"]
-        let referencePosition = attributes["refposition"]
-        Logger.parser.debug("Parsing COOSYS element with attributes: \(attributes, privacy: .public)")
-        let coordinateSystem = VOCoordinateSystem(
-            id: id,
-            system: system != nil ? ReferenceFrame(rawValue: system!) : nil,
-            equinox: equinox != nil ? try? Date(epoch: equinox!) : nil,
-            epoch: epoch != nil ? try? Date(epoch: epoch!) : nil,
-            referencePosition: referencePosition != nil ? ReferencePosition(rawValue: referencePosition!) : nil
-        )
-        Logger.parser.debug(
-            "Parsed COOSYS element \("\(self.parsingResult.coordinateSystem?.description ?? "nil")", privacy: .public)"
-        )
-        if self.pathMatches("VOTABLE/COOSYS", path) {
-            parsingResult.coordinateSystem = coordinateSystem
-        } else if self.pathMatches("*/RESOURCE/COOSYS", currentPath), !currentResourcePath.isEmpty {
-            currentResourcePath[currentResourcePath.count - 1].coordinateSystem = coordinateSystem
-        }
-    }
+    private func parseCoordinateSystem(attributes: [String: String]) {
+        if let id = attributes["ID"] {
+            // Create the coordinate system object
+            let system = attributes["system"]
+            let equinox = attributes["equinox"]
+            let epoch = attributes["epoch"]
+            let referencePosition = attributes["refposition"]
+            let coordinateSystem = VOCoordinateSystem(
+                id: id,
+                system: system != nil ? ReferenceFrame(rawValue: system!) : nil,
+                equinox: equinox != nil ? try? Date(epoch: equinox!) : nil,
+                epoch: epoch != nil ? try? Date(epoch: epoch!) : nil,
+                referencePosition: referencePosition != nil ? ReferencePosition(rawValue: referencePosition!) : nil
+            )
 
-    private func parseTimeSystem(path: [String], attributes: [String: String]) {
-        if !self.pathMatches("VOTABLE/TIMESYS", path),
-           !self.pathMatches("VOTABLE/DEFINITIONS/TIMESYS", path),
-           !self.pathMatches("*/RESOURCE/TIMESYS", path)
-        {
-            Logger.parser.warning("Skipping TIMESYS element because path does not match: \(path, privacy: .public)")
-            return
-        }
-        let id = attributes["ID"]
-        let timeOrigin = attributes["timeorigin"]
-        let timeScale = attributes["timescale"]
-        let referencePosition = attributes["refposition"]
+            // Get the previous object in the path
+            let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
 
-        var timeOriginDate: Date?
-        if let timeOriginString = timeOrigin {
-            if timeOriginString == "MJD-origin" {
-                timeOriginDate = Date.modifiedJulianDateOrigin
-            } else if timeOriginString == "JD-origin" {
-                timeOriginDate = Date.julianDateOrigin
-            } else if let julianDate = Double(timeOriginString) {
-                timeOriginDate = Date(julianDate: julianDate)
+            // Add the coordinate system to the last object in the current path
+            if parentObject == nil { // VOTABLE
+                var coordinateSystems = parsingResult.coordinateSystems ?? []
+                coordinateSystems.append(coordinateSystem)
+                parsingResult.coordinateSystems = coordinateSystems
+            } else if let resource = parentObject as? VOResource { // RESOURCE
+                var coordinateSystems = resource.coordinateSystems ?? []
+                coordinateSystems.append(coordinateSystem)
+                resource.coordinateSystems = coordinateSystems
             }
         }
-        Logger.parser.debug("Parsing TIMESYS element with attributes: \(attributes, privacy: .public)")
-        let timeSystem = VOTimeSystem(
-            id: id,
-            timeOrigin: timeOriginDate,
-            timeScale: timeScale != nil ? TimeScale(rawValue: timeScale!) : nil,
-            referencePosition: referencePosition != nil ? ReferencePosition(rawValue: referencePosition!) : nil
-        )
+    }
 
-        if self.pathMatches("VOTABLE/TIMESYS", path) {
-            parsingResult.timeSystem = timeSystem
-        } else if self.pathMatches("*/RESOURCE/TIMESYS", currentPath), !currentResourcePath.isEmpty {
-            currentResourcePath[currentResourcePath.count - 1].timeSystem = timeSystem
+    private func parseTimeSystem(attributes: [String: String]) {
+        if let id = attributes["ID"],
+           let timeScale = attributes["timescale"],
+           let refpos = attributes["refposition"]
+        {
+            // Create the time system object
+            let timeOrigin = attributes["timeorigin"]
+            let referencePosition = ReferencePosition(rawValue: refpos)
+
+            var timeOriginDate: Date?
+            if let timeOriginString = timeOrigin {
+                if timeOriginString == "MJD-origin" {
+                    timeOriginDate = Date.modifiedJulianDateOrigin
+                } else if timeOriginString == "JD-origin" {
+                    timeOriginDate = Date.julianDateOrigin
+                } else if let julianDate = Double(timeOriginString) {
+                    timeOriginDate = Date(julianDate: julianDate)
+                }
+            }
+            Logger.parser.debug("Parsing TIMESYS element with attributes: \(attributes, privacy: .public)")
+            let timeSystem = VOTimeSystem(
+                id: id,
+                timeOrigin: timeOriginDate,
+                timeScale: TimeScale(rawValue: timeScale) ?? .unknown,
+                referencePosition: referencePosition
+            )
+
+            // Get the previous object in the path
+            let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+            // Add the coordinate system to the last object in the current path
+            if parentObject == nil { // VOTABLE
+                var timeSystems = parsingResult.timeSystems ?? []
+                timeSystems.append(timeSystem)
+                parsingResult.timeSystems = timeSystems
+            } else if let resource = parentObject as? VOResource { // RESOURCE
+                var timeSystems = resource.timeSystems ?? []
+                timeSystems.append(timeSystem)
+                resource.timeSystems = timeSystems
+            }
         }
     }
 
-    private func parseResource(path: [String], attributes: [String: String]) {
-        if !self.pathMatches("VOTABLE/RESOURCE", path),
-           !self.pathMatches("*/RESOURCE/RESOURCE", path)
-        {
-            Logger.parser.warning("Skipping RESOURCE element because path does not match: \(path, privacy: .public)")
-            return
-        }
+    private func parseResource(attributes: [String: String]) {
+        // Create the resource object
         let id = attributes["ID"]
         let name = attributes["name"]
         let type = attributes["type"]
         let utype = attributes["utype"]
+
         let resource = VOResource(id: id, name: name, type: type, utype: utype)
-        currentResourcePath.append(resource)
-    }
 
-    // MARK: End Elements
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
 
-    private func handleFieldElement(attributes: [String: String]) {
-        inField = true
-        let name = attributes["name"] ?? ""
-        let datatype = attributes["datatype"] ?? "char"
-        let unit = attributes["unit"]
-        let ucd = attributes["ucd"]
-
-        currentMetadata = ColumnMetadata(
-            name: name,
-            datatype: datatype,
-            ucd: ucd,
-            unit: unit,
-            description: nil
-        )
-    }
-
-    private func handleEndResource() {
-        if let currentResource = currentResourcePath.last {
-            self.addResource(currentResource, path: currentPath)
+        // Add the coordinate system to the last object in the current path
+        if parentObject == nil { // VOTABLE
+            var resources = parsingResult.resources ?? []
+            resources.append(resource)
+            parsingResult.resources = resources
+        } else if let resource = parentObject as? VOResource { // RESOURCE
+            var resources = resource.resources ?? []
+            resources.append(resource)
+            resource.resources = resources
         }
-        currentResourcePath.removeLast()
+
+        // A Resource can have sub-elements so it needs to be added to the current path
+        currentObjectPath.append(resource)
     }
 
-    private func handleEndField() {
-        inField = false
-        if let metadata = currentMetadata {
-            fields.append(metadata)
+    private func parseParameter(attributes: [String: String]) {
+        if let name = attributes["name"],
+           let datatype = attributes["datatype"],
+           let parameterValue = attributes["value"]
+        {
+            // Create the parameter object
+            let id = attributes["ID"]
+            let unit = attributes["unit"]
+            let widthStr = attributes["width"]
+            let precisionStr = attributes["precision"]
+            let xType = attributes["xtype"]
+            let ucd = attributes["ucd"]
+            let utype = attributes["utype"]
+            let reference = attributes["ref"]
+            let arraySizeStr = attributes["arraysize"]
+
+            let width = widthStr != nil ? Int(widthStr!) : nil
+            let precision = precisionStr != nil ? FieldPrecision(precision: precisionStr!) : nil
+            var arraySize = 1
+            var arraySizeInfinite = false
+            switch arraySizeStr {
+            case nil:
+                break
+            case "*":
+                arraySizeInfinite = true
+            default:
+                if let arraySizeInt = Int(arraySizeStr!) {
+                    arraySize = arraySizeInt
+                }
+            }
+
+            let parameter = VOParameter(
+                id: id,
+                name: name,
+                datatype: datatype,
+                parameterValue: parameterValue,
+                arraySize: arraySize,
+                arraySizeInfinite: arraySizeInfinite,
+                width: width,
+                precision: precision,
+                xType: xType,
+                unit: unit,
+                ucd: ucd,
+                utype: utype,
+                reference: reference
+            )
+
+            // Get the previous object in the path
+            let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+            // Add the coordinate system to the last object in the current path
+            if parentObject == nil { // VOTABLE
+                var parameters = parsingResult.parameters ?? []
+                parameters.append(parameter)
+                parsingResult.parameters = parameters
+            }
+
+            // TODO: Add parameter to RESOURCE
+            // TODO: Add parameter to TABLE
+            // TODO: Add parameter to GROUP
         }
-        currentMetadata = nil
     }
 
-    private func addResource(_ resource: VOResource, path: [String]) {
-        if self.pathMatches("VOTABLE/RESOURCE", path) {
-            parsingResult.resources?.append(resource)
-        } else if self.pathMatches("*/RESOURCE/RESOURCE", path), !currentResourcePath.isEmpty {
-            currentResourcePath[currentResourcePath.count - 1].resources?.append(resource)
+    private func parseField(attributes: [String: String]) {
+        if let name = attributes["name"],
+           let datatype = attributes["datatype"]
+        {
+            // Create the field object
+            let id = attributes["ID"]
+            let unit = attributes["unit"]
+            let widthStr = attributes["width"]
+            let precisionStr = attributes["precision"]
+            let xType = attributes["xtype"]
+            let ucd = attributes["ucd"]
+            let utype = attributes["utype"]
+            let reference = attributes["ref"]
+            let arraySizeStr = attributes["arraysize"]
+            let type = attributes["type"]
+
+            let width = widthStr != nil ? Int(widthStr!) : nil
+            let precision = precisionStr != nil ? FieldPrecision(precision: precisionStr!) : nil
+            var arraySize = 1
+            var arraySizeInfinite = false
+            switch arraySizeStr {
+            case nil:
+                break
+            case "*":
+                arraySizeInfinite = true
+            default:
+                if let arraySizeInt = Int(arraySizeStr!) {
+                    arraySize = arraySizeInt
+                }
+            }
+
+            let field = VOField(
+                id: id,
+                name: name,
+                datatype: datatype,
+                arraySize: arraySize,
+                arraySizeInfinite: arraySizeInfinite,
+                width: width,
+                precision: precision,
+                xType: xType,
+                unit: unit,
+                ucd: ucd,
+                utype: utype,
+                reference: reference,
+                type: type
+            )
+
+            // Get the previous object in the path
+            let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+            // Add the coordinate system to the last object in the current path
+            // TODO: Add field to TABLE
         }
     }
 
     // MARK: - XMLParserDelegate
 
-    // swiftlint:disable:next cyclomatic_complexity
     public func parser(
         _: XMLParser,
         didStartElement elementName: String,
@@ -230,30 +305,23 @@ class VOTableParser: NSObject, XMLParserDelegate {
         qualifiedName _: String?,
         attributes attributeDict: [String: String]
     ) {
-        currentElement = elementName
         currentPath.append(elementName)
 
         switch elementName {
-        case "VOTABLE", "TABLE", "DATA", "INFO":
+        case "VOTABLE":
             break
         case "BINARY":
             Logger.parser.debug("Found BINARY data section")
         case "COOSYS":
-            parseCoordinateSystem(path: currentPath, attributes: attributeDict)
+            parseCoordinateSystem(attributes: attributeDict)
         case "TIMESYS":
-            parseTimeSystem(path: currentPath, attributes: attributeDict)
+            parseTimeSystem(attributes: attributeDict)
         case "RESOURCE":
-            parseResource(path: currentPath, attributes: attributeDict)
+            parseResource(attributes: attributeDict)
+        case "PARAM":
+            parseParameter(attributes: attributeDict)
         case "FIELD":
-            handleFieldElement(attributes: attributeDict)
-        case "STREAM":
-            handleStartStream(attributes: attributeDict)
-        case "TABLEDATA":
-            handleStartTableData()
-        case "TR":
-            handleStartTR()
-        case "TD":
-            currentValue = ""
+            parseField(attributes: attributeDict)
         default:
             Logger.parser.debug("Unhandled element: \(elementName, privacy: .public)")
         }
@@ -265,25 +333,27 @@ class VOTableParser: NSObject, XMLParserDelegate {
         namespaceURI _: String?,
         qualifiedName _: String?
     ) {
-        Logger.parser.debug("Did End element: \(self.currentPath.joined(separator: "/"), privacy: .public)")
-
+        let currentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
         switch elementName {
-        case "VOTABLE", "TABLE", "DATA", "BINARY", "STREAM", "INFO":
+        case "VOTABLE":
             break
         case "RESOURCE":
-            handleEndResource()
-        case "FIELD":
-            handleEndField()
-        case "DESCRIPTION":
-            self.parseDescription(path: currentPath, value: currentValue)
-        case "TR":
-            inTR = false
-        case "TD":
-            if inTR {
-                currentRow.append(currentValue.trimmingCharacters(in: .whitespacesAndNewlines))
+            // Remove the resource from the current path
+            if currentObject is VOResource {
+                currentObjectPath.removeLast()
             }
-        case "TABLEDATA":
-            inTableData = false
+        case "PARAM":
+            // Remove the parameter from the current path
+            if currentObject is VOParameter {
+                currentObjectPath.removeLast()
+            }
+        case "FIELD":
+            // Remove the field from the current path
+            if currentObject is VOField {
+                currentObjectPath.removeLast()
+            }
+        case "DESCRIPTION":
+            self.parseDescription(value: currentValue)
         default:
             Logger.parser.debug("Unhandled element: \(elementName, privacy: .public)")
         }
@@ -292,7 +362,6 @@ class VOTableParser: NSObject, XMLParserDelegate {
     }
 
     public func parser(_: XMLParser, foundCharacters string: String) {
-        Logger.parser.debug("Found characters: \(string.prefix(20), privacy: .public)...")
         currentValue += string
     }
 

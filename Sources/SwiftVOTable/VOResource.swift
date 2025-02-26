@@ -9,7 +9,7 @@ import OSLog
 /// Resources can be nested to arbitrary depth.
 ///
 /// See: https://www.ivoa.net/documents/VOTable/20250116/REC-VOTable-1.5.html#tth_sEc3.6
-public struct VOResource: CustomStringConvertible {
+public class VOResource: CustomStringConvertible {
     /// The identifier of the resource.
     public let id: String?
 
@@ -29,25 +29,36 @@ public struct VOResource: CustomStringConvertible {
 
     private var _description: String?
 
-    /// The coordinate system of the resource.
-    public internal(set) var coordinateSystem: VOCoordinateSystem?
+    /// The coordinate systems of the resource.
+    public internal(set) var coordinateSystems: [VOCoordinateSystem]?
 
-    /// The time system of the resource.
-    public internal(set) var timeSystem: VOTimeSystem?
+    /// The time systems of the resource.
+    public internal(set) var timeSystems: [VOTimeSystem]?
 
     /// The (sub-)resources of the resource.
     public internal(set) var resources: [VOResource]?
 
     /// Sets the description of the resource.
     /// - Parameter description: The description of the resource.
-    mutating func setDescription(_ description: String) {
+    func setDescription(_ description: String) {
         self._description = description
     }
 
-    public init(id: String? = nil, name: String? = nil, type: String? = nil, utype: String? = nil) {
+    public init(
+        id: String? = nil,
+        name: String? = nil,
+        type: String? = nil,
+        utype: String? = nil,
+        coordinateSystems: [VOCoordinateSystem]? = nil,
+        timeSystems: [VOTimeSystem]? = nil,
+        resources: [VOResource]? = nil
+    ) {
         self.id = id
         self.name = name
         self.type = type
         self.utype = utype
+        self.coordinateSystems = coordinateSystems
+        self.timeSystems = timeSystems
+        self.resources = resources
     }
 }
