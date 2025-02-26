@@ -89,6 +89,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parsingResult.parsedDescription = value.trimmingCharacters(in: .whitespacesAndNewlines)
         } else if inField {
             currentMetadata?.description = currentValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else if self.pathMatches("*/RESOURCE/DESCRIPTION", path) {
+            let description = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            currentResourcePath[currentResourcePath.count - 1].setDescription(description)
         }
     }
 
@@ -161,14 +164,18 @@ class VOTableParser: NSObject, XMLParserDelegate {
         }
     }
 
-    private func parseResource(path: [String]) {
+    private func parseResource(path: [String], attributes: [String: String]) {
         if !self.pathMatches("VOTABLE/RESOURCE", path),
            !self.pathMatches("*/RESOURCE/RESOURCE", path)
         {
             Logger.parser.warning("Skipping RESOURCE element because path does not match: \(path, privacy: .public)")
             return
         }
-        let resource = VOResource()
+        let id = attributes["ID"]
+        let name = attributes["name"]
+        let type = attributes["type"]
+        let utype = attributes["utype"]
+        let resource = VOResource(id: id, name: name, type: type, utype: utype)
         currentResourcePath.append(resource)
     }
 
@@ -236,7 +243,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
         case "TIMESYS":
             parseTimeSystem(path: currentPath, attributes: attributeDict)
         case "RESOURCE":
-            parseResource(path: currentPath)
+            parseResource(path: currentPath, attributes: attributeDict)
         case "FIELD":
             handleFieldElement(attributes: attributeDict)
         case "STREAM":
