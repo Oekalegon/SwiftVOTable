@@ -38,6 +38,9 @@ public class VOResource: CustomStringConvertible {
     /// The (sub-)resources of the resource.
     public internal(set) var resources: [VOResource]?
 
+    /// The info elements of the resource.
+    public internal(set) var infos: [VOInfo]?
+
     /// Sets the description of the resource.
     /// - Parameter description: The description of the resource.
     func setDescription(_ description: String) {
@@ -51,7 +54,8 @@ public class VOResource: CustomStringConvertible {
         utype: String? = nil,
         coordinateSystems: [VOCoordinateSystem]? = nil,
         timeSystems: [VOTimeSystem]? = nil,
-        resources: [VOResource]? = nil
+        resources: [VOResource]? = nil,
+        infos: [VOInfo]? = nil
     ) {
         self.id = id
         self.name = name
@@ -60,5 +64,6 @@ public class VOResource: CustomStringConvertible {
         self.coordinateSystems = coordinateSystems
         self.timeSystems = timeSystems
         self.resources = resources
+        self.infos = infos
     }
 }

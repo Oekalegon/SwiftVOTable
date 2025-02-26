@@ -13,6 +13,7 @@ class ParsingResult: CustomStringConvertible {
     var parsedDescription: String?
     var resources: [VOResource]?
     var parameters: [VOParameter]?
+    var infos: [VOInfo]?
 
     public init(id: String? = nil, version: String? = nil) {
         self.id = id
@@ -296,6 +297,45 @@ class VOTableParser: NSObject, XMLParserDelegate {
         }
     }
 
+    private func parseInfo(attributes: [String: String]) {
+        if let name = attributes["name"],
+           let value = attributes["value"]
+        {
+            // Create the info object
+            let id = attributes["ID"]
+            let xType = attributes["xtype"]
+            let unit = attributes["unit"]
+            let ucd = attributes["ucd"]
+            let utype = attributes["utype"]
+            let reference = attributes["ref"]
+
+            let info = VOInfo(
+                id: id,
+                name: name,
+                value: value,
+                xType: xType,
+                unit: unit,
+                ucd: ucd,
+                utype: utype,
+                reference: reference
+            )
+
+            // Get the previous object in the path
+            let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+            // Add the info to the last object in the current path
+            if parentObject == nil { // VOTABLE
+                parsingResult.infos = [info]
+            } else if let resource = parentObject as? VOResource { // RESOURCE
+                var infos = resource.infos ?? []
+                infos.append(info)
+                resource.infos = infos
+            }
+
+            // TODO: Add info to TABLE
+        }
+    }
+
     // MARK: - XMLParserDelegate
 
     public func parser(
@@ -322,11 +362,14 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parseParameter(attributes: attributeDict)
         case "FIELD":
             parseField(attributes: attributeDict)
+        case "INFO":
+            parseInfo(attributes: attributeDict)
         default:
             Logger.parser.debug("Unhandled element: \(elementName, privacy: .public)")
         }
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     public func parser(
         _: XMLParser,
         didEndElement elementName: String,
@@ -350,6 +393,21 @@ class VOTableParser: NSObject, XMLParserDelegate {
         case "FIELD":
             // Remove the field from the current path
             if currentObject is VOField {
+                currentObjectPath.removeLast()
+            }
+        case "INFO":
+            // Remove the info from the current path
+            if let info = currentObject as? VOInfo {
+                let textValue = currentValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                if textValue.count > 0 {
+                    if info.value.trimmingCharacters(in: .whitespacesAndNewlines).count > 0 {
+                        // If the info already has a value, and also a text value
+                        // we need to add a new line to the value with the text value
+                        info.value += "\n\(textValue)"
+                    } else {
+                        info.value = textValue
+                    }
+                }
                 currentObjectPath.removeLast()
             }
         case "DESCRIPTION":
