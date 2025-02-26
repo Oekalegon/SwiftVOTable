@@ -131,6 +131,10 @@ public class VOValues: CustomStringConvertible {
 
     /// Creates a new `VOValues` object.
     /// - Parameters:
+    ///   - id: The identifier of the values.
+    ///   - type: The type of the values.
+    ///   - reference: A reference to another `VOValues` element of the document.
+    ///   - nullValue: The value used to denote a null value.
     ///   - maximum: The maximum value(s) of the domain.
     ///   - minimum: The minimum value(s) of the domain.
     ///   - optionalValues: The optional values of the domain.
