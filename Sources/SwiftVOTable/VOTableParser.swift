@@ -81,7 +81,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
         } else if let group = parentObject as? VOGroup { // GROUP
             group.setDescription(parsedDescription)
         } else {
-            Logger.parser.warning("Cannot add DESCRIPTION element to \(parentObject.debugDescription), skipping")
+            Logger.parser.warning("""
+            Cannot add DESCRIPTION element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
         }
     }
 
@@ -113,7 +115,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 coordinateSystems.append(coordinateSystem)
                 resource.coordinateSystems = coordinateSystems
             } else {
-                Logger.parser.warning("Cannot add COOSYS element to \(parentObject.debugDescription), skipping")
+                Logger.parser.warning("""
+                Cannot add COOSYS element to \(Swift.type(of: parentObject), privacy: .public), skipping
+                """)
             }
         }
     }
@@ -157,7 +161,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 timeSystems.append(timeSystem)
                 resource.timeSystems = timeSystems
             } else {
-                Logger.parser.warning("Cannot add TIMESYS element to \(parentObject.debugDescription), skipping")
+                Logger.parser.warning("""
+                Cannot add TIMESYS element to \(Swift.type(of: parentObject), privacy: .public), skipping
+                """)
             }
         }
     }
@@ -184,7 +190,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
             resources.append(resource)
             resource.resources = resources
         } else {
-            Logger.parser.warning("Cannot add RESOURCE element to \(parentObject.debugDescription), skipping")
+            Logger.parser.warning("""
+            Cannot add RESOURCE element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
         }
 
         // A Resource can have sub-elements so it needs to be added to the current path
@@ -262,8 +270,12 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 parameters.append(parameter)
                 table.parameters = parameters
             } else {
-                Logger.parser.warning("Cannot add PARAM element to \(parentObject.debugDescription), skipping")
+                Logger.parser.warning("""
+                Cannot add PARAM element to \(Swift.type(of: parentObject), privacy: .public), skipping
+                """)
             }
+
+            currentObjectPath.append(parameter)
         }
     }
 
@@ -324,8 +336,12 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 fields.append(field)
                 table.fields = fields
             } else {
-                Logger.parser.warning("Cannot add FIELD element to \(parentObject.debugDescription), skipping")
+                Logger.parser.warning("""
+                Cannot add FIELD element to \(Swift.type(of: parentObject), privacy: .public)
+                """)
             }
+
+            currentObjectPath.append(field)
         }
     }
 
@@ -369,7 +385,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 infos.append(info)
                 table.infos = infos
             } else {
-                Logger.parser.warning("Cannot add INFO element to \(parentObject.debugDescription), skipping")
+                Logger.parser.warning("""
+                Cannot add INFO element to \(Swift.type(of: parentObject), privacy: .public), skipping
+                """)
             }
         }
     }
@@ -405,8 +423,12 @@ class VOTableParser: NSObject, XMLParserDelegate {
             groups.append(group)
             table.groups = groups
         } else {
-            Logger.parser.warning("Cannot add GROUP element to \(parentObject.debugDescription), skipping")
+            Logger.parser.warning("""
+            Cannot add GROUP element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
         }
+
+        currentObjectPath.append(group)
     }
 
     private func parseValues(attributes: [String: String]) {
@@ -427,8 +449,12 @@ class VOTableParser: NSObject, XMLParserDelegate {
         } else if let parameter = parentObject as? VOParameter { // VOParameter
             parameter.values = values
         } else {
-            Logger.parser.warning("Cannot add VALUES element to \(parentObject.debugDescription), skipping")
+            Logger.parser.warning("""
+            Cannot add VALUES element to \(parentObject.debugDescription, privacy: .public), skipping
+            """)
         }
+
+        currentObjectPath.append(values)
     }
 
     private func parseMin(attributes: [String: String]) {
@@ -443,7 +469,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
             if let values = parentObject as? VOValues {
                 values.minimum = min
             } else {
-                Logger.parser.warning("Cannot add MIN element to \(parentObject.debugDescription), skipping")
+                Logger.parser.warning("""
+                Cannot add MIN element to \(Swift.type(of: parentObject), privacy: .public), skipping
+                """)
             }
         }
     }
@@ -460,7 +488,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
             if let values = parentObject as? VOValues { // VOValues
                 values.maximum = max
             } else {
-                Logger.parser.warning("Cannot add MAX element to \(parentObject.debugDescription), skipping")
+                Logger.parser.warning("""
+                Cannot add MAX element to \(Swift.type(of: parentObject), privacy: .public), skipping
+                """)
             }
         }
     }
@@ -483,7 +513,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 optionalValues.append(optionalValue)
                 optionalValue.optionalValues = optionalValues
             } else {
-                Logger.parser.warning("Cannot add OPTION element to \(parentObject.debugDescription), skipping")
+                Logger.parser.warning("""
+                Cannot add OPTION element to \(Swift.type(of: parentObject), privacy: .public), skipping
+                """)
             }
         }
     }
@@ -528,7 +560,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
             links.append(link)
             table.links = links
         } else {
-            Logger.parser.warning("Cannot add LINK element to \(parentObject.debugDescription), skipping")
+            Logger.parser.warning("""
+            Cannot add LINK element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
         }
     }
 
@@ -559,8 +593,12 @@ class VOTableParser: NSObject, XMLParserDelegate {
             tables.append(table)
             resource.tables = tables
         } else {
-            Logger.parser.warning("Cannot add TABLE element to \(parentObject.debugDescription), skipping")
+            Logger.parser.warning("""
+            Cannot add TABLE element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
         }
+
+        currentObjectPath.append(table)
     }
 
     // MARK: - XMLParserDelegate
@@ -596,7 +634,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parseMin(attributes: attributeDict)
         case "MAX":
             parseMax(attributes: attributeDict)
-        case "OPTION    ":
+        case "OPTION":
             parseOption(attributes: attributeDict)
         case "LINK":
             parseLink(attributes: attributeDict)
@@ -634,7 +672,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
     ) {
         let currentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
         switch elementName {
-        case "VOTABLE", "FIELDref", "PARAMref":
+        case "VOTABLE", "FIELDref", "PARAMref", "COOSYS", "TIMESYS":
             break
         case "RESOURCE":
             // Remove the resource from the current path
@@ -696,7 +734,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
         case "DESCRIPTION":
             self.parseDescription(value: currentValue)
         default:
-            Logger.parser.debug("Unhandled element: \(elementName, privacy: .public)")
+            Logger.parser.debug("Unhandled element (end): \(elementName, privacy: .public)")
         }
 
         currentPath.removeLast()
