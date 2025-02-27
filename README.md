@@ -9,15 +9,15 @@ The following table lists which parts (elements)of the VOTable Format Definition
 
 | Element           | Parsing implemented | Formatting implemented |
 | ----------------- | ------------------- | ---------------------- |
-| VOTABLE           | partial             | no                     |
+| VOTABLE           | yes                 | no                     |
 | -  DESCRIPTION    | yes                 | no                     |
 | -  COOSYS         | yes                 | no                     |
 | -  TIMESYS        | yes                 | no                     |
-| -  RESOURCE       | partial             | no                     |
+| -  RESOURCE       | yes                 | no                     |
 | -  INFO           | yes                 | no                     |
 | -  PARAM          | yes                 | no                     |
 | -  GROUP          | yes                 | no                     |
-| RESOURCE          | partial             | no                     |
+| RESOURCE          | yes                 | no                     |
 | -  DESCRIPTION    | yes                 | no                     |
 | -  COOSYS         | yes                 | no                     |
 | -  TIMESYS        | yes                 | no                     |
@@ -26,13 +26,26 @@ The following table lists which parts (elements)of the VOTable Format Definition
 | -  GROUP          | yes                 | no                     |
 | -  PARAM          | yes                 | no                     |
 | -  LINK           | yes                 | no                     |
-| -  TABLE          | no                  | no                     |
+| -  TABLE          | yes                 | no                     |
+| TABLE             | partial             | no                     |
+| -  DESCRIPTION    | yes                 | no                     |
+| -  FIELD          | yes                 | no                     |
+| -  PARAM          | yes                 | no                     |
+| -  GROUP          | yes                 | no                     |
+| -  LINK           | yes                 | no                     |
 | -  DATA           | no                  | no                     |
-| -  TABLEDATA      | no                  | no                     |
-| TABLE             | no                  | no                     |
+| -  INFO           | yes                 | no                     |
 | FIELD             | yes                 | no                     |
 | PARAM             | yes                 | no                     |
 | DATA              | no                  | no                     |
+| -  TABLEDATA      | no                  | no                     |
+| -  TR             | no                  | no                     |
+| -  TD             | no                  | no                     |
+| -  BINARY         | no                  | no                     |
+| -  BINARY2        | no                  | no                     |
+| -  STREAM         | no                  | no                     |
+| -  FITS           | no                  | no                     |
+| -  INFO           | no                  | no                     |
 | GROUP             | yes                 | no                     |
 | VALUES            | yes                 | no                     |
 | COOSYS            | yes                 | no                     |

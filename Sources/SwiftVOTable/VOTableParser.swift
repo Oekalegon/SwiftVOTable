@@ -72,11 +72,17 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parsingResult.parsedDescription = parsedDescription
         } else if let resource = parentObject as? VOResource { // RESOURCE
             resource.setDescription(parsedDescription)
+        } else if let table = parentObject as? VOResourceTable { // TABLE
+            table.description = parsedDescription
+        } else if let field = parentObject as? VOField { // FIELD
+            field.setDescription(parsedDescription)
+        } else if let parameter = parentObject as? VOParameter { // PARAM
+            parameter.setDescription(parsedDescription)
+        } else if let group = parentObject as? VOGroup { // GROUP
+            group.setDescription(parsedDescription)
+        } else {
+            Logger.parser.warning("Cannot add DESCRIPTION element to \(parentObject.debugDescription), skipping")
         }
-        // TODO: Add description to TABLE
-        // TODO: Add description to FIELD
-        // TODO: Add description to PARAM
-        // TODO: Add description to GROUP
     }
 
     private func parseCoordinateSystem(attributes: [String: String]) {
@@ -251,14 +257,17 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 var parameters = group.parameters ?? []
                 parameters.append(parameter)
                 group.parameters = parameters
+            } else if let table = parentObject as? VOResourceTable { // TABLE
+                var parameters = table.parameters ?? []
+                parameters.append(parameter)
+                table.parameters = parameters
             } else {
                 Logger.parser.warning("Cannot add PARAM element to \(parentObject.debugDescription), skipping")
             }
-
-            // TODO: Add parameter to TABLE
         }
     }
 
+    // swiftlint:disable:next function_body_length
     private func parseField(attributes: [String: String]) {
         if let name = attributes["name"],
            let datatype = attributes["datatype"]
@@ -310,7 +319,13 @@ class VOTableParser: NSObject, XMLParserDelegate {
             let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
 
             // Add the coordinate system to the last object in the current path
-            // TODO: Add field to TABLE
+            if let table = parentObject as? VOResourceTable { // TABLE
+                var fields = table.fields ?? []
+                fields.append(field)
+                table.fields = fields
+            } else {
+                Logger.parser.warning("Cannot add FIELD element to \(parentObject.debugDescription), skipping")
+            }
         }
     }
 
@@ -349,11 +364,13 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 var infos: [VOInfo] = resource.infos ?? []
                 infos.append(info)
                 resource.infos = infos
+            } else if let table = parentObject as? VOResourceTable { // TABLE
+                var infos: [VOInfo] = table.infos ?? []
+                infos.append(info)
+                table.infos = infos
             } else {
                 Logger.parser.warning("Cannot add INFO element to \(parentObject.debugDescription), skipping")
             }
-
-            // TODO: Add info to TABLE
         }
     }
 
@@ -383,11 +400,13 @@ class VOTableParser: NSObject, XMLParserDelegate {
             var groups = group.groups ?? []
             groups.append(group)
             group.groups = groups
+        } else if let table = parentObject as? VOResourceTable { // TABLE
+            var groups = table.groups ?? []
+            groups.append(group)
+            table.groups = groups
         } else {
             Logger.parser.warning("Cannot add GROUP element to \(parentObject.debugDescription), skipping")
         }
-
-        // TODO: Add group to TABLE
     }
 
     private func parseValues(attributes: [String: String]) {
@@ -504,8 +523,43 @@ class VOTableParser: NSObject, XMLParserDelegate {
             var links = parameter.links ?? []
             links.append(link)
             parameter.links = links
+        } else if let table = parentObject as? VOResourceTable { // TABLE
+            var links = table.links ?? []
+            links.append(link)
+            table.links = links
         } else {
             Logger.parser.warning("Cannot add LINK element to \(parentObject.debugDescription), skipping")
+        }
+    }
+
+    private func parseTable(attributes: [String: String]) {
+        let id = attributes["ID"]
+        let name = attributes["name"]
+        let ucd = attributes["ucd"]
+        let utype = attributes["utype"]
+        let reference = attributes["ref"]
+        let nrowsStr: String? = attributes["nrows"]
+        let nrows = nrowsStr != nil ? Int(nrowsStr!) : nil
+
+        let table = VOResourceTable(
+            id: id,
+            name: name,
+            ucd: ucd,
+            utype: utype,
+            reference: reference,
+            nrows: nrows
+        )
+
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        // Add the table to the last object in the current path
+        if let resource = parentObject as? VOResource { // VOResource
+            var tables = resource.tables ?? []
+            tables.append(table)
+            resource.tables = tables
+        } else {
+            Logger.parser.warning("Cannot add TABLE element to \(parentObject.debugDescription), skipping")
         }
     }
 
@@ -550,6 +604,8 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parseInfo(attributes: attributeDict)
         case "GROUP":
             parseGroup(attributes: attributeDict)
+        case "TABLE":
+            parseTable(attributes: attributeDict)
         case "FIELDref":
             // Add the field reference to the group as a string
             if let group = currentObjectPath.last as? VOGroup {
@@ -630,6 +686,11 @@ class VOTableParser: NSObject, XMLParserDelegate {
         case "GROUP":
             // Remove the group from the current path
             if currentObject is VOGroup {
+                currentObjectPath.removeLast()
+            }
+        case "TABLE":
+            // Remove the table from the current path
+            if currentObject is VOResourceTable {
                 currentObjectPath.removeLast()
             }
         case "DESCRIPTION":

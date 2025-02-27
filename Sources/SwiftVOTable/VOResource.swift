@@ -56,6 +56,9 @@ public class VOResource: CustomStringConvertible {
     /// The links of the resource.
     public var links: [VOLink]?
 
+    /// The tables included the resource.
+    public var tables: [VOResourceTable]?
+
     public init(
         id: String? = nil,
         name: String? = nil,
@@ -67,7 +70,8 @@ public class VOResource: CustomStringConvertible {
         infos: [VOInfo]? = nil,
         groups: [VOGroup]? = nil,
         parameters: [VOParameter]? = nil,
-        links: [VOLink]? = nil
+        links: [VOLink]? = nil,
+        tables: [VOResourceTable]? = nil
     ) {
         self.id = id
         self.name = name
@@ -80,5 +84,6 @@ public class VOResource: CustomStringConvertible {
         self.groups = groups
         self.parameters = parameters
         self.links = links
+        self.tables = tables
     }
 }
