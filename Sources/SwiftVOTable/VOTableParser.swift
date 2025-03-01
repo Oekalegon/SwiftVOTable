@@ -173,7 +173,8 @@ class VOTableParser: NSObject, XMLParserDelegate {
     // swiftlint:disable:next function_body_length
     private func parseParameter(attributes: [String: String]) {
         if let name = attributes["name"],
-           let datatype = attributes["datatype"],
+           let datatypeStr = attributes["datatype"],
+           let datatype = VODataType(rawValue: datatypeStr),
            let parameterValue = attributes["value"]
         {
             // Create the parameter object
@@ -253,7 +254,8 @@ class VOTableParser: NSObject, XMLParserDelegate {
     // swiftlint:disable:next function_body_length
     private func parseField(attributes: [String: String]) {
         if let name = attributes["name"],
-           let datatype = attributes["datatype"]
+           let datatypeStr = attributes["datatype"],
+           let datatype = VODataType(rawValue: datatypeStr)
         {
             // Create the field object
             let id = attributes["ID"]

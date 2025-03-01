@@ -1,6 +1,59 @@
 import Foundation
 import OSLog
 
+/// The datatype of a field.
+///
+/// The datatype is used to indicate the type of the data in the field.
+public enum VODataType: String {
+    /// The datatype is a boolean.
+    case boolean
+
+    /// The datatype is a bit.
+    case bit
+
+    /// The datatype is an unsigned byte.
+    case unsignedByte
+
+    /// The datatype is a char.
+    ///
+    /// For a sequence of `char`s, i.e. a string, the `arraySize` attribute of the field
+    /// should be specified (either a number to limit the number of characters or `*` for
+    /// a string of unspecified length).
+    case char
+
+    /// The datatype is a unicode char.
+    ///
+    /// For a sequence of `unicodeChar`s, i.e. a string, the `arraySize` attribute of the field
+    /// should be specified (either a number to limit the number of characters or `*` for
+    /// a string of unspecified length).
+    case unicodeChar
+
+    /// The datatype is a short.
+    case short // int16
+
+    /// The datatype is an integer.
+    case int // int32
+
+    /// The datatype is a long.
+    case long // int64
+
+    /// The datatype is a float.
+    case float
+
+    /// The datatype is a double.
+    case double
+
+    /// The datatype is a complex number with a float precision.
+    ///
+    /// In VOTable, this consists of two float values, the real and imaginary part respectively.
+    case floatComplex
+
+    /// The datatype is a complex number with a double precision.
+    ///
+    /// In VOTable, this consists of two double values, the real and imaginary part respectively.
+    case doubleComplex
+}
+
 /// The precision of a field.
 ///
 /// The precision is used to indicate the number of significant digits of the quantity.
@@ -64,7 +117,7 @@ public class VOField: CustomStringConvertible {
     public let name: String
 
     /// The datatype of the field.
-    public let datatype: String
+    public let datatype: VODataType
 
     /// The size of the array of the field.
     public let arraySize: Int
@@ -147,7 +200,7 @@ public class VOField: CustomStringConvertible {
     public init(
         id: String? = nil,
         name: String,
-        datatype: String,
+        datatype: VODataType,
         arraySize: Int = 1,
         arraySizeInfinite: Bool = false,
         width: Int? = nil,

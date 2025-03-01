@@ -31,7 +31,7 @@ public class VOParameter: VOField {
     public init(
         id: String? = nil,
         name: String,
-        datatype: String,
+        datatype: VODataType,
         parameterValue: Any,
         arraySize: Int = 1,
         arraySizeInfinite: Bool = false,
@@ -88,7 +88,7 @@ public class VOParameter: VOField {
     public init(
         id: String? = nil,
         name: String,
-        datatype: String,
+        datatype: VODataType,
         parameterValues: [Any],
         arraySize: Int = 1,
         arraySizeInfinite: Bool = false,
