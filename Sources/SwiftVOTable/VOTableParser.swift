@@ -3,42 +3,13 @@ import Foundation
 import OSLog
 import TabularData
 
-class ParsingResult: CustomStringConvertible {
-    let id: String?
-    let version: String?
-    var columnData: DataFrame?
-    var data: DataFrame?
-    var coordinateSystems: [VOCoordinateSystem]?
-    var timeSystems: [VOTimeSystem]?
-    var parsedDescription: String?
-    var resources: [VOResource]?
-    var parameters: [VOParameter]?
-    var infos: [VOInfo]?
-    var groups: [VOGroup]?
-
-    public init(id: String? = nil, version: String? = nil) {
-        self.id = id
-        self.version = version
-    }
-
-    var description: String {
-        """
-        ParsingResult:
-        - Description: \(parsedDescription ?? "nil")
-        - Coordinate Systems: \(coordinateSystems?.description ?? "nil")
-        - Time Systems: \(timeSystems?.description ?? "nil")
-        - Resources: \(resources?.description ?? "nil")
-        """
-    }
-}
-
 // swiftlint:disable type_body_length
 /// Parser for VOTable XML format
 class VOTableParser: NSObject, XMLParserDelegate {
     private var currentValue: String = ""
     private var currentPath: [String] = []
     private var currentObjectPath: [Any] = []
-    private var parsingResult = ParsingResult()
+    private var votable = VOTable()
 
     // MARK: - Parsing
 
@@ -48,9 +19,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
     /// - Parameter data: VOTable XML data
     /// - Returns: Parsed VODataFrame
     /// - Throws: Error if parsing fails
-    func parse(_ data: Data) throws -> ParsingResult {
+    func parse(_ data: Data) throws -> VOTable {
         self.currentPath = []
-        self.parsingResult = ParsingResult()
+        self.votable = VOTable()
         let parser = XMLParser(data: data)
         parser.delegate = self
 
@@ -58,7 +29,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
             throw VOTableError.parsingFailed(parser.parserError?.localizedDescription ?? "Unknown error")
         }
 
-        return parsingResult
+        return votable
     }
 
     private func parseDescription(value: String) {
@@ -69,7 +40,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
         // Add the coordinate system to the last object in the current path
         if parentObject == nil { // VOTABLE
-            parsingResult.parsedDescription = parsedDescription
+            votable.parsedDescription = parsedDescription
         } else if let resource = parentObject as? VOResource { // RESOURCE
             resource.setDescription(parsedDescription)
         } else if let table = parentObject as? VOResourceTable { // TABLE
@@ -107,9 +78,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
             // Add the coordinate system to the last object in the current path
             if parentObject == nil { // VOTABLE
-                var coordinateSystems = parsingResult.coordinateSystems ?? []
+                var coordinateSystems = votable.coordinateSystems ?? []
                 coordinateSystems.append(coordinateSystem)
-                parsingResult.coordinateSystems = coordinateSystems
+                votable.coordinateSystems = coordinateSystems
             } else if let resource = parentObject as? VOResource { // RESOURCE
                 var coordinateSystems = resource.coordinateSystems ?? []
                 coordinateSystems.append(coordinateSystem)
@@ -153,9 +124,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
             // Add the coordinate system to the last object in the current path
             if parentObject == nil { // VOTABLE
-                var timeSystems = parsingResult.timeSystems ?? []
+                var timeSystems = votable.timeSystems ?? []
                 timeSystems.append(timeSystem)
-                parsingResult.timeSystems = timeSystems
+                votable.timeSystems = timeSystems
             } else if let resource = parentObject as? VOResource { // RESOURCE
                 var timeSystems = resource.timeSystems ?? []
                 timeSystems.append(timeSystem)
@@ -182,9 +153,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
         // Add the coordinate system to the last object in the current path
         if parentObject == nil { // VOTABLE
-            var resources = parsingResult.resources ?? []
+            var resources = votable.resources ?? []
             resources.append(resource)
-            parsingResult.resources = resources
+            votable.resources = resources
         } else if let resource = parentObject as? VOResource { // RESOURCE
             var resources = resource.resources ?? []
             resources.append(resource)
@@ -254,9 +225,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
             // Add the coordinate system to the last object in the current path
             if parentObject == nil { // VOTABLE
-                var parameters = parsingResult.parameters ?? []
+                var parameters = votable.parameters ?? []
                 parameters.append(parameter)
-                parsingResult.parameters = parameters
+                votable.parameters = parameters
             } else if let resource = parentObject as? VOResource { // RESOURCE
                 var parameters = resource.parameters ?? []
                 parameters.append(parameter)
@@ -373,9 +344,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
             // Add the info to the last object in the current path
             if parentObject == nil { // VOTABLE
-                var infos: [VOInfo] = parsingResult.infos ?? []
+                var infos: [VOInfo] = votable.infos ?? []
                 infos.append(info)
-                parsingResult.infos = infos
+                votable.infos = infos
             } else if let resource = parentObject as? VOResource { // RESOURCE
                 var infos: [VOInfo] = resource.infos ?? []
                 infos.append(info)
@@ -407,9 +378,9 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
         // Add the group to the last object in the current path
         if parentObject == nil { // VOTABLE
-            var groups = parsingResult.groups ?? []
+            var groups = votable.groups ?? []
             groups.append(group)
-            parsingResult.groups = groups
+            votable.groups = groups
         } else if let resource = parentObject as? VOResource { // RESOURCE
             var groups = resource.groups ?? []
             groups.append(group)
@@ -601,6 +572,11 @@ class VOTableParser: NSObject, XMLParserDelegate {
         currentObjectPath.append(table)
     }
 
+    private func parseData() {
+        let data = VOData()
+        currentObjectPath.append(data)
+    }
+
     // MARK: - XMLParserDelegate
 
     // swiftlint:disable:next cyclomatic_complexity
@@ -644,6 +620,8 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parseGroup(attributes: attributeDict)
         case "TABLE":
             parseTable(attributes: attributeDict)
+        case "DATA":
+            parseData()
         case "FIELDref":
             // Add the field reference to the group as a string
             if let group = currentObjectPath.last as? VOGroup {
@@ -729,6 +707,11 @@ class VOTableParser: NSObject, XMLParserDelegate {
         case "TABLE":
             // Remove the table from the current path
             if currentObject is VOResourceTable {
+                currentObjectPath.removeLast()
+            }
+        case "DATA":
+            // Remove the data from the current path
+            if currentObject is VOData {
                 currentObjectPath.removeLast()
             }
         case "DESCRIPTION":

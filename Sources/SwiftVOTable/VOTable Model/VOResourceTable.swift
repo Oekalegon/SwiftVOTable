@@ -17,7 +17,9 @@ public class VOResourceTable {
     // TODO: Add Data
     public var infos: [VOInfo]?
 
-    public init(
+    var data: VOData?
+
+    init(
         id: String? = nil,
         name: String? = nil,
         ucd: String? = nil,
@@ -29,7 +31,8 @@ public class VOResourceTable {
         parameters: [VOParameter]? = nil,
         groups: [VOGroup]? = nil,
         links: [VOLink]? = nil,
-        infos: [VOInfo]? = nil
+        infos: [VOInfo]? = nil,
+        data: VOData? = nil
     ) {
         self.id = id
         self.name = name
@@ -43,5 +46,6 @@ public class VOResourceTable {
         self.groups = groups
         self.links = links
         self.infos = infos
+        self.data = data
     }
 }

@@ -37,7 +37,7 @@ The following table lists which parts (elements)of the VOTable Format Definition
 | -  INFO           | yes                 | no                     |
 | FIELD             | yes                 | no                     |
 | PARAM             | yes                 | no                     |
-| DATA              | no                  | no                     |
+| DATA              | partial             | no                     |
 | -  TABLEDATA      | no                  | no                     |
 | -  TR             | no                  | no                     |
 | -  TD             | no                  | no                     |
