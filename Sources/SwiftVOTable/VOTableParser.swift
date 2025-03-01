@@ -490,6 +490,7 @@ class VOTableParser: NSObject, XMLParserDelegate {
                 Cannot add OPTION element to \(Swift.type(of: parentObject), privacy: .public), skipping
                 """)
             }
+            currentObjectPath.append(optionalValue)
         }
     }
 
@@ -576,12 +577,82 @@ class VOTableParser: NSObject, XMLParserDelegate {
 
     private func parseData() {
         let data = VOData()
+
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        // Add the table to the last object in the current path
+        if let table: VOResourceTable = parentObject as? VOResourceTable { // VOResourceTable
+            table.data = data
+        } else {
+            Logger.parser.warning("""
+            Cannot add DATA element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
+        }
+
         currentObjectPath.append(data)
+    }
+
+    private func parseTableData() {
+        let tableData = VOTableData()
+
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        // Add the table data to the last object in the current path
+        if let data: VOData = parentObject as? VOData { // VOData
+            data.tableData = tableData
+        } else {
+            Logger.parser.warning("""
+            Cannot add TABLEDATA element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
+        }
+
+        currentObjectPath.append(tableData)
+    }
+
+    private func parseTableRow(attributes: [String: String]) {
+        let id = attributes["ID"]
+        let row = VOTR(id: id)
+
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        if let tableData = parentObject as? VOTableData {
+            var trs = tableData.trs ?? []
+            trs.append(row)
+            tableData.trs = trs
+        } else {
+            Logger.parser.warning("""
+            Cannot add TR element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
+        }
+
+        currentObjectPath.append(row)
+    }
+
+    private func parseTableCell(attributes: [String: String]) {
+        let encoding = attributes["encoding"]
+
+        let cell = VOTD(encoding: encoding)
+
+        // Get the previous object in the path
+        let parentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
+
+        if let row = parentObject as? VOTR {
+            var tds = row.tds ?? []
+            tds.append(cell)
+            row.tds = tds
+        } else {
+            Logger.parser.warning("""
+            Cannot add TD element to \(Swift.type(of: parentObject), privacy: .public), skipping
+            """)
+        }
     }
 
     // MARK: - XMLParserDelegate
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public func parser(
         _: XMLParser,
         didStartElement elementName: String,
@@ -592,7 +663,8 @@ class VOTableParser: NSObject, XMLParserDelegate {
         currentPath.append(elementName)
 
         switch elementName {
-        case "VOTABLE", "DESCRIPTION":
+        // DEFINITIONS is only valid in VOTABLE 1.0 - here for backward compatibility
+        case "VOTABLE", "DESCRIPTION", "DEFINITIONS":
             break
         case "BINARY":
             Logger.parser.debug("Found BINARY data section")
@@ -624,6 +696,12 @@ class VOTableParser: NSObject, XMLParserDelegate {
             parseTable(attributes: attributeDict)
         case "DATA":
             parseData()
+        case "TABLEDATA":
+            parseTableData()
+        case "TR":
+            parseTableRow(attributes: attributeDict)
+        case "TD":
+            parseTableCell(attributes: attributeDict)
         case "FIELDref":
             // Add the field reference to the group as a string
             if let group = currentObjectPath.last as? VOGroup {
@@ -652,74 +730,120 @@ class VOTableParser: NSObject, XMLParserDelegate {
     ) {
         let currentObject = currentObjectPath.count > 0 ? currentObjectPath[currentObjectPath.count - 1] : nil
         switch elementName {
-        case "VOTABLE", "FIELDref", "PARAMref", "COOSYS", "TIMESYS":
+        case "VOTABLE", "FIELDref", "PARAMref", "COOSYS", "TIMESYS", "INFO", "MIN", "MAX", "LINK", "DEFINITIONS":
             break
+        case "DESCRIPTION":
+            // Remove the description from the current path
+            self.parseDescription(value: currentValue)
         case "RESOURCE":
             // Remove the resource from the current path
             if currentObject is VOResource {
                 currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected RESOURCE element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
             }
         case "PARAM":
             // Remove the parameter from the current path
             if currentObject is VOParameter {
                 currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected PARAM element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
             }
         case "FIELD":
             // Remove the field from the current path
             if currentObject is VOField {
                 currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected FIELD element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
             }
         case "VALUES":
             // Remove the values from the current path
             if currentObject is VOValues {
                 currentObjectPath.removeLast()
-            }
-        case "MIN":
-            // Remove the min from the current path
-            if currentObject is DomainValue {
-                currentObjectPath.removeLast()
-            }
-        case "MAX":
-            // Remove the max from the current path
-            if currentObject is DomainValue {
-                currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected VALUES element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
             }
         case "OPTION":
             // Remove the option from the current path
             if currentObject is OptionalValue {
                 currentObjectPath.removeLast()
-            }
-        case "LINK":
-            // Remove the link from the current path
-            if currentObject is VOLink {
-                currentObjectPath.removeLast()
-            }
-        case "INFO":
-            // Remove the info from the current path
-            if let info = currentObject as? VOInfo {
-                let textValue = currentValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                info.textValue = textValue
-                currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected OPTION element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
             }
         case "GROUP":
             // Remove the group from the current path
             if currentObject is VOGroup {
                 currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected GROUP element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
             }
         case "TABLE":
             // Remove the table from the current path
             if currentObject is VOResourceTable {
                 currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected TABLE element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
             }
         case "DATA":
             // Remove the data from the current path
             if currentObject is VOData {
                 currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected DATA element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
             }
-        case "DESCRIPTION":
-            self.parseDescription(value: currentValue)
+        case "TABLEDATA":
+            // Remove the table data from the current path
+            if currentObject is VOTableData {
+                currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Can't remove expected TABLEDATA element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
+            }
+        case "TR":
+            // Remove the table row from the current path
+            if currentObject is VOTR {
+                currentObjectPath.removeLast()
+            } else {
+                Logger.parser.warning("""
+                Cannot remove expected TR element instead found \(Swift.type(of: currentObject), privacy: .public)
+                    <- \(self.pathString(), privacy: .public)
+                """)
+            }
+        case "TD":
+            // Remove the table cell from the current path
+            if let cell = currentObject as? VOTD {
+                cell.value = currentValue
+            }
         default:
-            Logger.parser.debug("Unhandled element (end): \(elementName, privacy: .public)")
+            Logger.parser.debug("""
+            Unhandled element (end): \(elementName, privacy: .public) <- \(self.pathString(), privacy: .public)
+            """)
         }
 
         currentPath.removeLast()
@@ -729,59 +853,11 @@ class VOTableParser: NSObject, XMLParserDelegate {
         currentValue += string
     }
 
-    // MARK: - Path Matching
-
-    /// Tests if a path pattern matches a given path array
-    /// - Parameters:
-    ///   - pattern: Pattern string with '/' as separator and '*' as wildcard
-    ///   - path: Array of path components to test against
-    /// - Returns: true if pattern matches path
-    func pathMatches(_ pattern: String, _ path: [String]) -> Bool {
-        let patternParts = pattern.split(separator: "/")
-        let pathParts = path
-
-        // If no wildcards, lengths must match exactly
-        if !patternParts.contains("*") {
-            if patternParts.count != pathParts.count {
-                return false
-            }
-            return zip(patternParts, pathParts).allSatisfy { $0 == $1 }
-        }
-
-        // With wildcards, we need to match segments flexibly
-        var patternIndex = 0
-        var pathIndex = 0
-
-        while patternIndex < patternParts.count && pathIndex < pathParts.count {
-            let pattern = String(patternParts[patternIndex])
-
-            if pattern == "*" {
-                // For wildcard, try to match the next non-wildcard pattern part
-                if patternIndex == patternParts.count - 1 {
-                    // Last pattern is wildcard, matches rest of path
-                    return true
-                }
-
-                // Look ahead to next pattern part
-                patternIndex += 1
-                let nextPattern = String(patternParts[patternIndex])
-
-                // Find next matching path segment
-                while pathIndex < pathParts.count, pathParts[pathIndex] != nextPattern {
-                    pathIndex += 1
-                }
-            } else if pattern == pathParts[pathIndex] {
-                // Exact match, continue
-                patternIndex += 1
-                pathIndex += 1
-            } else {
-                return false
-            }
-        }
-
-        // Check if we matched everything
-        return patternIndex == patternParts.count ||
-            (patternIndex == patternParts.count - 1 && patternParts.last == "*")
+    public func pathString() -> String {
+        // First map the array to its type names as strings
+        let typeNames = currentObjectPath.map { String(describing: Swift.type(of: $0)) }
+        // Then join them with a "."
+        return typeNames.joined(separator: "/")
     }
 
     /// Converts an array of substrings to an array of Any values

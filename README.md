@@ -27,20 +27,20 @@ The following table lists which parts (elements)of the VOTable Format Definition
 | -  PARAM          | yes                 | no                     |
 | -  LINK           | yes                 | no                     |
 | -  TABLE          | yes                 | no                     |
-| TABLE             | partial             | no                     |
+| TABLE             | yes                 | no                     |
 | -  DESCRIPTION    | yes                 | no                     |
 | -  FIELD          | yes                 | no                     |
 | -  PARAM          | yes                 | no                     |
 | -  GROUP          | yes                 | no                     |
 | -  LINK           | yes                 | no                     |
-| -  DATA           | no                  | no                     |
+| -  DATA           | yes                 | no                     |
 | -  INFO           | yes                 | no                     |
 | FIELD             | yes                 | no                     |
 | PARAM             | yes                 | no                     |
 | DATA              | partial             | no                     |
-| -  TABLEDATA      | no                  | no                     |
-| -  TR             | no                  | no                     |
-| -  TD             | no                  | no                     |
+| -  TABLEDATA      | yes                 | no                     |
+| -  TR             | yes                 | no                     |
+| -  TD             | yes                 | no                     |
 | -  BINARY         | no                  | no                     |
 | -  BINARY2        | no                  | no                     |
 | -  STREAM         | no                  | no                     |
@@ -52,9 +52,9 @@ The following table lists which parts (elements)of the VOTable Format Definition
 | TIMESYS           | yes                 | no                     |
 | INFO              | yes                 | no                     |
 | LINK              | yes                 | no                     |
-| TABLEDATA         | no                  | no                     |
-| TR                | no                  | no                     |
-| TD                | no                  | no                     |
+| TABLEDATA         | yes                 | no                     |
+| TR                | yes                 | no                     |
+| TD                | yes                 | no                     |
 | BINARY            | no                  | no                     |
 | BINARY2           | no                  | no                     |
 | STREAM            | no                  | no                     |
